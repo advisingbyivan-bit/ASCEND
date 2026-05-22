@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import fs from "fs";
+import path from "path";
 
 import { config } from "./config";
 import { pool } from "./db/connection";
@@ -97,11 +99,33 @@ app.use(errorHandler);
 
 // --- Server Startup ---
 
+async function runMigrations(): Promise<void> {
+  const migrationsDir = path.join(__dirname, "db", "migrations");
+  if (!fs.existsSync(migrationsDir)) {
+    console.log("No migrations directory found, skipping");
+    return;
+  }
+  const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith(".sql")).sort();
+  for (const file of files) {
+    const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
+    try {
+      await pool.query(sql);
+      console.log(`Migration applied: ${file}`);
+    } catch (err: any) {
+      // IF NOT EXISTS clauses make re-runs safe; log but don't crash
+      console.warn(`Migration warning for ${file}:`, err.message);
+    }
+  }
+}
+
 async function start(): Promise<void> {
   try {
     // Test database connection
     await pool.query("SELECT NOW()");
     console.log("Database connected");
+
+    // Run migrations on startup
+    await runMigrations();
 
     // Connect to Redis
     try {
