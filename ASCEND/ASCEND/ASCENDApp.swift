@@ -35,7 +35,9 @@ struct ContentSwitcher: View {
                     RootView()
                         .environment(appState)
                 } else {
-                    OnboardingFlowView { data in
+                    OnboardingFlowView(
+                        googleSignInEnabled: !Secrets.googleClientID.isEmpty
+                    ) { data in
                         saveOnboardingData(data)
                         hasCompletedOnboarding = true
                     }

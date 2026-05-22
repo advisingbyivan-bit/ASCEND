@@ -2,15 +2,19 @@ import SwiftUI
 import DesignSystem
 
 public struct OnboardingFlowView: View {
-    @State private var coordinator = OnboardingCoordinator()
+    @State private var coordinator: OnboardingCoordinator
     let onComplete: (OnboardingData) -> Void
 
-    public init(onComplete: @escaping (OnboardingData) -> Void) {
+    public init(googleSignInEnabled: Bool = false, onComplete: @escaping (OnboardingData) -> Void) {
+        var data = OnboardingData()
+        data.googleSignInEnabled = googleSignInEnabled
+        self._coordinator = State(initialValue: OnboardingCoordinator(data: data))
         self.onComplete = onComplete
     }
 
     /// Convenience init with no-data callback (backwards compatible)
     public init(onComplete: @escaping () -> Void) {
+        self._coordinator = State(initialValue: OnboardingCoordinator())
         self.onComplete = { _ in onComplete() }
     }
 

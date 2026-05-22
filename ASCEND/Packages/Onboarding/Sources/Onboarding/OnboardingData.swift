@@ -34,6 +34,9 @@ public struct OnboardingData {
     public var scanPhotos: [UIImage] = []
     public var diagnosisResult: DiagnosisResult?
 
+    // Feature flags (set by host app)
+    public var googleSignInEnabled = false
+
     // Paywall
     public var didPurchase = false
 

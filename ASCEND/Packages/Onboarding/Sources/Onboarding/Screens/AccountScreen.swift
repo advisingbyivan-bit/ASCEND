@@ -70,32 +70,34 @@ struct AccountScreen: View {
             .opacity(showApple ? 1 : 0)
             .padding(.horizontal, DSSpacing.screenPadding)
 
-            Spacer().frame(height: 12)
+            // Sign in with Google (only shown when configured)
+            if coordinator.data.googleSignInEnabled {
+                Spacer().frame(height: 12)
 
-            // Sign in with Google
-            Button {
-                DSHaptic.medium()
-                // Google sign-in will be wired up with GoogleSignIn SDK
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "g.circle.fill")
-                        .font(.system(size: 18))
-                    Text("Sign in with Google")
-                        .font(DSFont.bodyBold)
+                Button {
+                    DSHaptic.medium()
+                    // Google sign-in will be wired up with GoogleSignIn SDK
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "g.circle.fill")
+                            .font(.system(size: 18))
+                        Text("Sign in with Google")
+                            .font(DSFont.bodyBold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(Color.ds_charcoal)
+                    .foregroundStyle(Color.ds_textPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: DSSpacing.buttonRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: DSSpacing.buttonRadius)
+                            .stroke(Color.ds_cardBorder, lineWidth: 1)
+                    )
                 }
-                .frame(maxWidth: .infinity)
-                .frame(height: 54)
-                .background(Color.ds_charcoal)
-                .foregroundStyle(Color.ds_textPrimary)
-                .clipShape(RoundedRectangle(cornerRadius: DSSpacing.buttonRadius))
-                .overlay(
-                    RoundedRectangle(cornerRadius: DSSpacing.buttonRadius)
-                        .stroke(Color.ds_cardBorder, lineWidth: 1)
-                )
+                .scaleEffect(showGoogle ? 1 : 0.9)
+                .opacity(showGoogle ? 1 : 0)
+                .padding(.horizontal, DSSpacing.screenPadding)
             }
-            .scaleEffect(showGoogle ? 1 : 0.9)
-            .opacity(showGoogle ? 1 : 0)
-            .padding(.horizontal, DSSpacing.screenPadding)
 
             Spacer().frame(height: 12)
 

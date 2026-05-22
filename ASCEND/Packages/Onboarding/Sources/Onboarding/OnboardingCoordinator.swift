@@ -68,6 +68,10 @@ public final class OnboardingCoordinator {
 
     public init() {}
 
+    public init(data: OnboardingData) {
+        self.data = data
+    }
+
     public func advance() {
         guard let next = OnboardingScreen(rawValue: currentScreen.rawValue + 1) else {
             isComplete = true
