@@ -28,7 +28,7 @@ export const LeaderboardModel = {
     const { rows } = await query<LeaderboardEntry>(
       `INSERT INTO leaderboard (user_id, display_name, focus_area, overall_score, progress_pct, streak, diamonds, badge_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       ON CONFLICT (user_id) WHERE FALSE
+       ON CONFLICT (user_id)
        DO UPDATE SET
          display_name = EXCLUDED.display_name,
          focus_area = COALESCE(EXCLUDED.focus_area, leaderboard.focus_area),

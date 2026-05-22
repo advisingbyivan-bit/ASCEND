@@ -82,24 +82,6 @@ app.get("/health", async (_req, res) => {
   }
 });
 
-// Temporary debug endpoint (remove after first deploy)
-app.get("/admin/debug", async (_req, res) => {
-  try {
-    const migrationsDir = path.join(__dirname, "..", "src", "db", "migrations");
-    const exists = fs.existsSync(migrationsDir);
-    const dirContents = exists ? fs.readdirSync(migrationsDir) : [];
-    const tables = await pool.query("SELECT tablename FROM pg_tables WHERE schemaname = 'public'");
-    res.json({
-      __dirname,
-      migrationsDir,
-      migrationsExist: exists,
-      migrationFiles: dirContents,
-      tables: tables.rows.map((r: any) => r.tablename),
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: err.message, __dirname });
-  }
-});
 
 // --- API Routes ---
 
