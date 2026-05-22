@@ -100,7 +100,9 @@ app.use(errorHandler);
 // --- Server Startup ---
 
 async function runMigrations(): Promise<void> {
-  const migrationsDir = path.join(__dirname, "db", "migrations");
+  // In production, __dirname is /app/dist but migrations are at /app/src/db/migrations
+  // In dev, __dirname is /app/src so migrations are at /app/src/db/migrations
+  const migrationsDir = path.join(__dirname, "..", "src", "db", "migrations");
   if (!fs.existsSync(migrationsDir)) {
     console.log("No migrations directory found, skipping");
     return;
