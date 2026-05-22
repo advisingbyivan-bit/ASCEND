@@ -46,7 +46,7 @@ struct PaywallScreen: View {
                         .scaleEffect(showTitle ? 1 : 0.9)
                         .opacity(showTitle ? 1 : 0)
 
-                    Text("3-day free trial, cancel anytime")
+                    Text("Start with a 3-day free trial on Yearly")
                         .font(DSFont.body)
                         .foregroundStyle(Color.ds_textSecondary)
                         .offset(y: showTrial ? 0 : 10)
@@ -97,7 +97,7 @@ struct PaywallScreen: View {
 
                 // Glowing CTA
                 DSPrimaryButton(
-                    isPurchasing ? "Processing..." : "Start Free Trial",
+                    isPurchasing ? "Processing..." : (selectedPlan == .yearly ? "Start Free Trial" : "Subscribe Now"),
                     icon: isPurchasing ? nil : "lock.open.fill",
                     isLoading: isPurchasing
                 ) {
@@ -122,7 +122,9 @@ struct PaywallScreen: View {
 
                 // Apple-required disclosures
                 VStack(spacing: DSSpacing.xs) {
-                    Text("No payment due now. After your 3-day free trial, your subscription will automatically renew at the selected price.")
+                    Text(selectedPlan == .yearly
+                        ? "No payment due now. After your 3-day free trial, your subscription will automatically renew at $29.99/year."
+                        : "You will be charged $9.99 immediately. Your subscription will automatically renew monthly.")
                         .font(DSFont.micro)
                         .foregroundStyle(Color.ds_textSecondary.opacity(0.7))
                         .multilineTextAlignment(.center)
@@ -302,7 +304,7 @@ struct PaywallScreen: View {
         ("Acceptance of Terms", "By downloading, installing, or using ASCEND, you agree to be bound by these Terms of Use."),
         ("Description of Service", "ASCEND is a body transformation tracking application that uses AI-powered visual analysis. ASCEND is NOT a medical device."),
         ("Eligibility", "You must be at least 17 years old to use ASCEND."),
-        ("Subscriptions & Payments", "ASCEND offers premium features through auto-renewable subscriptions via Apple In-App Purchase. 3-day free trial available. Yearly: $29.99/year. Monthly: $9.99/month. Subscription auto-renews unless cancelled at least 24 hours before the end of the current period. Manage in Settings > Apple ID > Subscriptions."),
+        ("Subscriptions & Payments", "ASCEND offers premium features through auto-renewable subscriptions via Apple In-App Purchase. Yearly: $29.99/year (3-day free trial). Monthly: $9.99/month (billed immediately). Subscription auto-renews unless cancelled at least 24 hours before the end of the current period. Manage in Settings > Apple ID > Subscriptions."),
         ("User Content", "You retain ownership of photos and data you submit. Your photos are encrypted and never shared with third parties."),
         ("AI Disclaimer", "AI-generated feedback is for fitness guidance only. Consult a healthcare professional for medical advice."),
         ("Limitation of Liability", "ASCEND is provided \"as is\" without warranties. We are not liable for damages arising from use of the App."),

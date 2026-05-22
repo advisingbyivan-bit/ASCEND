@@ -158,15 +158,10 @@
           "familyShareable" : false,
           "groupNumber" : 2,
           "internalID" : "MONTHLY_001",
-          "introductoryOffer" : {
-            "displayPrice" : "0",
-            "internalID" : "MONTHLY_TRIAL",
-            "paymentMode" : "free",
-            "subscriptionPeriod" : "P3D"
-          },
+          "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Monthly access to ASCEND Pro.",
+              "description" : "Monthly access to ASCEND Pro. Billed immediately.",
               "displayName" : "Monthly",
               "locale" : "en_US"
             }
