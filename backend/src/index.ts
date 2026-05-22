@@ -22,6 +22,7 @@ import diagnosisRoutes from "./routes/diagnoses";
 import leaderboardRoutes from "./routes/leaderboard";
 import friendRoutes from "./routes/friends";
 import milestoneRoutes from "./routes/milestones";
+import waitlistRoutes from "./routes/waitlist";
 
 const app = express();
 
@@ -39,6 +40,8 @@ app.use(
   cors({
     origin: config.isProduction
       ? [
+          "https://ascendapp.us",
+          "https://www.ascendapp.us",
           "https://ascend.app",
           "capacitor://localhost",
           "ionic://localhost",
@@ -92,6 +95,7 @@ app.use("/diagnoses", diagnosisRoutes);
 app.use("/leaderboard", leaderboardRoutes);
 app.use("/friends", friendRoutes);
 app.use("/milestones", milestoneRoutes);
+app.use("/waitlist", waitlistRoutes);
 
 // --- Error Handling ---
 
