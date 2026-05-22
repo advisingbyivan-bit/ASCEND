@@ -1,0 +1,10 @@
+name = "ascend-proxy"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+
+# Your Anthropic API key — set via: wrangler secret put ANTHROPIC_API_KEY
+# Never put the actual key in this file.
+
+# Optional: rate limiting per IP (free tier supports this)
+# [vars]
+# MAX_REQUESTS_PER_MINUTE = "30"

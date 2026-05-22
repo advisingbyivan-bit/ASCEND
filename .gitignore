@@ -1,0 +1,32 @@
+# Xcode
+ASCEND/DerivedData/
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Backend
+backend/node_modules/
+backend/dist/
+backend/.env
+backend/*.p8
+
+# Cloudflare Worker
+ascend-proxy/node_modules/
+ascend-proxy/.wrangler/
+
+# Secrets - never commit
+*.p8
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
