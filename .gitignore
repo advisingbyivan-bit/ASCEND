@@ -1,16 +1,20 @@
 # Xcode
-ASCEND/DerivedData/
+DerivedData/
 *.xcuserstate
 *.xcuserdatad/
 xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
 
 # Swift Package Manager
-.build/
+**/.build/
 .swiftpm/
+Package.resolved
 
 # macOS
 .DS_Store
 **/.DS_Store
+._*
 
 # Backend
 backend/node_modules/
@@ -30,3 +34,19 @@ ascend-proxy/.wrangler/
 # IDE
 .vscode/
 .idea/
+
+# Raw 3D assets (not needed in repo)
+*.fbx
+female-body-base-mesh/
+female-body-decimated/
+female-body-decimated 2/
+
+# Marketing assets (large)
+Marketing Screenshots/
+
+# Archives
+files.zip
+files/
+
+# Claude session data
+.claude/

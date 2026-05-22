@@ -1,0 +1,12 @@
+# Secrets (API keys)
+ASCEND/Secrets.swift
+
+# Xcode
+*.xcuserdata
+*.xcworkspace
+DerivedData/
+build/
+
+# macOS
+.DS_Store
+*.swp

@@ -1,0 +1,187 @@
+{
+  "identifier" : "us.ascendapp.app.products",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "CREDITS_3",
+      "localizations" : [
+        {
+          "description" : "3 body scan credits for AI-powered diagnostics.",
+          "displayName" : "3 Scan Credits",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "us.ascendapp.credits.3",
+      "referenceName" : "3 Scan Credits",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "5.99",
+      "familyShareable" : false,
+      "internalID" : "CREDITS_8",
+      "localizations" : [
+        {
+          "description" : "8 body scan credits — save 25% per scan.",
+          "displayName" : "8 Scan Credits",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "us.ascendapp.credits.8",
+      "referenceName" : "8 Scan Credits",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "CREDITS_20",
+      "localizations" : [
+        {
+          "description" : "20 body scan credits — best value, save 50% per scan.",
+          "displayName" : "20 Scan Credits",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "us.ascendapp.credits.20",
+      "referenceName" : "20 Scan Credits",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "0",
+    "_developerTeamID" : "G7F453K538",
+    "_failTransactionsEnabled" : false,
+    "_lastVerificationError" : "",
+    "_locale" : "en_US",
+    "_storefront" : "USA",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Purchase"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Verification"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Store Sync"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Subscription Status"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "App Transaction"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Manage Subscriptions Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Refund Request Sheet"
+      },
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Offer Code Redeem Sheet"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "ASCEND_PRO",
+      "localizations" : [
+        {
+          "description" : "Full access to ASCEND AI diagnostics, unlimited scans, and IRIS coaching.",
+          "displayName" : "ASCEND Pro",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "ASCEND Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "29.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "YEARLY_001",
+          "introductoryOffer" : {
+            "displayPrice" : "0",
+            "internalID" : "YEARLY_TRIAL",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Full year of ASCEND Pro. Best value — save 75% vs monthly.",
+              "displayName" : "Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "us.ascendapp.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "ASCEND Pro Yearly",
+          "subscriptionGroupID" : "ASCEND_PRO",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "9.99",
+          "familyShareable" : false,
+          "groupNumber" : 2,
+          "internalID" : "MONTHLY_001",
+          "introductoryOffer" : {
+            "displayPrice" : "0",
+            "internalID" : "MONTHLY_TRIAL",
+            "paymentMode" : "free",
+            "subscriptionPeriod" : "P3D"
+          },
+          "localizations" : [
+            {
+              "description" : "Monthly access to ASCEND Pro.",
+              "displayName" : "Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "us.ascendapp.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "ASCEND Pro Monthly",
+          "subscriptionGroupID" : "ASCEND_PRO",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}
