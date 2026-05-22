@@ -1,5 +1,6 @@
 import Foundation
 import StoreKit
+import RevenueCat
 
 @Observable
 public final class SubscriptionManager {
@@ -35,6 +36,9 @@ public final class SubscriptionManager {
     public private(set) var products: [Product] = []
     public private(set) var purchaseError: String?
 
+    /// RevenueCat packages from the default offering
+    public private(set) var rcPackages: [RevenueCat.Package] = []
+
     public var isPremium: Bool {
         switch status {
         case .active, .trial: true
@@ -52,10 +56,24 @@ public final class SubscriptionManager {
         products.first { $0.id == SubscriptionPlan.monthly.rawValue }
     }
 
+    /// RevenueCat package for yearly
+    public var yearlyPackage: RevenueCat.Package? {
+        rcPackages.first { $0.storeProduct.productIdentifier == SubscriptionPlan.yearly.rawValue }
+    }
+
+    /// RevenueCat package for monthly
+    public var monthlyPackage: RevenueCat.Package? {
+        rcPackages.first { $0.storeProduct.productIdentifier == SubscriptionPlan.monthly.rawValue }
+    }
+
+    /// Whether RevenueCat is configured (API key provided)
+    public private(set) var isRevenueCatConfigured = false
+
     private var transactionListener: Task<Void, Never>?
 
     private init() {
-        // Listen for transaction updates (renewals, revocations, etc.)
+        // Fallback: Listen for StoreKit transaction updates directly
+        // (RevenueCat also does this internally, but we keep it for when RC isn't configured)
         transactionListener = Task.detached { [weak self] in
             for await result in Transaction.updates {
                 guard let self else { return }
@@ -77,7 +95,42 @@ public final class SubscriptionManager {
         transactionListener?.cancel()
     }
 
-    // MARK: - Load Products from App Store / StoreKit Config
+    // MARK: - RevenueCat Configuration
+
+    /// Call once at app launch with your RevenueCat API key.
+    /// If apiKey is empty, falls back to raw StoreKit 2.
+    public func configure(apiKey: String, appUserID: String? = nil) {
+        guard !apiKey.isEmpty else { return }
+
+        Purchases.logLevel = .warn
+        Purchases.configure(
+            with: .init(withAPIKey: apiKey)
+                .with(appUserID: appUserID)
+        )
+
+        isRevenueCatConfigured = true
+
+        // Reload offerings and status through RevenueCat
+        Task {
+            await loadOfferings()
+            await refreshStatus()
+        }
+    }
+
+    /// Link a RevenueCat user to your backend user ID (call after auth)
+    public func identify(userId: String) async {
+        guard isRevenueCatConfigured else { return }
+        do {
+            let (customerInfo, _) = try await Purchases.shared.logIn(userId)
+            await MainActor.run {
+                updateStatusFromCustomerInfo(customerInfo)
+            }
+        } catch {
+            print("[SubscriptionManager] RevenueCat identify error: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Load Products
 
     @MainActor
     public func loadProducts() async {
@@ -90,24 +143,71 @@ public final class SubscriptionManager {
         }
     }
 
+    /// Load RevenueCat offerings (packages with paywall metadata)
+    @MainActor
+    private func loadOfferings() async {
+        guard isRevenueCatConfigured else { return }
+        do {
+            let offerings = try await Purchases.shared.offerings()
+            if let current = offerings.current {
+                rcPackages = current.availablePackages
+            }
+        } catch {
+            print("[SubscriptionManager] Failed to load offerings: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - Purchase
 
     @MainActor
     public func purchase(plan: SubscriptionPlan) async -> Bool {
         purchaseError = nil
 
-        // Try to use live StoreKit product first
+        // Prefer RevenueCat if configured
+        if isRevenueCatConfigured {
+            return await purchaseViaRevenueCat(plan: plan)
+        }
+
+        // Fallback to raw StoreKit 2
+        return await purchaseViaStoreKit(plan: plan)
+    }
+
+    @MainActor
+    private func purchaseViaRevenueCat(plan: SubscriptionPlan) async -> Bool {
+        guard let package = rcPackages.first(where: {
+            $0.storeProduct.productIdentifier == plan.rawValue
+        }) else {
+            // Package not in offerings — fall back to StoreKit
+            return await purchaseViaStoreKit(plan: plan)
+        }
+
+        do {
+            let (_, customerInfo, _) = try await Purchases.shared.purchase(package: package)
+            updateStatusFromCustomerInfo(customerInfo)
+            return isPremium
+        } catch let error as RevenueCat.ErrorCode {
+            if error == .purchaseCancelledError {
+                return false
+            }
+            purchaseError = "Purchase failed: \(error.localizedDescription)"
+            return false
+        } catch {
+            purchaseError = "Purchase failed: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    @MainActor
+    private func purchaseViaStoreKit(plan: SubscriptionPlan) async -> Bool {
         if let product = products.first(where: { $0.id == plan.rawValue }) {
             return await purchaseProduct(product)
         }
 
-        // Fallback: try loading products then purchasing
         await loadProducts()
         if let product = products.first(where: { $0.id == plan.rawValue }) {
             return await purchaseProduct(product)
         }
 
-        // Product not found — do not grant access
         status = .expired
         return false
     }
@@ -146,6 +246,18 @@ public final class SubscriptionManager {
 
     @MainActor
     public func restorePurchases() async -> Bool {
+        if isRevenueCatConfigured {
+            do {
+                let customerInfo = try await Purchases.shared.restorePurchases()
+                updateStatusFromCustomerInfo(customerInfo)
+                return isPremium
+            } catch {
+                purchaseError = "Restore failed: \(error.localizedDescription)"
+                return false
+            }
+        }
+
+        // Fallback StoreKit
         do {
             try await AppStore.sync()
             await refreshStatus()
@@ -160,6 +272,18 @@ public final class SubscriptionManager {
 
     @MainActor
     public func refreshStatus() async {
+        // Prefer RevenueCat if configured
+        if isRevenueCatConfigured {
+            do {
+                let customerInfo = try await Purchases.shared.customerInfo()
+                updateStatusFromCustomerInfo(customerInfo)
+                return
+            } catch {
+                // Fall through to StoreKit
+            }
+        }
+
+        // Raw StoreKit fallback
         var foundActive = false
 
         for await result in Transaction.currentEntitlements {
@@ -171,7 +295,6 @@ public final class SubscriptionManager {
 
                 let plan = SubscriptionPlan(rawValue: transaction.productID) ?? .yearly
 
-                // Check if in trial (introductory offer)
                 if let offerType = transaction.offerType, offerType == .introductory {
                     let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: expirationDate).day ?? 0
                     status = .trial(daysRemaining: max(daysRemaining, 0))
@@ -185,6 +308,35 @@ public final class SubscriptionManager {
 
         if !foundActive {
             status = .free
+        }
+    }
+
+    // MARK: - RevenueCat CustomerInfo → Status
+
+    private func updateStatusFromCustomerInfo(_ info: CustomerInfo) {
+        // Check the "pro" entitlement (configure this in RevenueCat dashboard)
+        let entitlement = info.entitlements["pro"] ?? info.entitlements.active.values.first
+
+        guard let ent = entitlement, ent.isActive else {
+            status = .free
+            return
+        }
+
+        // Determine plan from product ID
+        let plan = SubscriptionPlan(rawValue: ent.productIdentifier) ?? .yearly
+
+        // Check trial
+        if ent.periodType == .trial {
+            if let expDate = ent.expirationDate {
+                let daysRemaining = Calendar.current.dateComponents([.day], from: Date(), to: expDate).day ?? 0
+                status = .trial(daysRemaining: max(daysRemaining, 0))
+            } else {
+                status = .trial(daysRemaining: 3)
+            }
+        } else if let expDate = ent.expirationDate {
+            status = .active(plan: plan, renewalDate: expDate)
+        } else {
+            status = .active(plan: plan, renewalDate: Date().addingTimeInterval(30 * 86400))
         }
     }
 

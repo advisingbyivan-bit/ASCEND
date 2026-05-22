@@ -1,6 +1,7 @@
 import Foundation
 import Security
 import Networking
+import Paywall
 
 /// Manages the Anthropic API key securely via Keychain.
 /// On app launch, loads the key and sets it on `ClaudeVisionClient.shared`.
@@ -25,6 +26,12 @@ enum APIKeyManager {
         let backendURL = Secrets.backendBaseURL
         if !backendURL.isEmpty {
             AuthClient.shared.backendBaseURL = backendURL
+        }
+
+        // Configure RevenueCat for subscription management
+        let rcKey = Secrets.revenueCatAPIKey
+        if !rcKey.isEmpty {
+            SubscriptionManager.shared.configure(apiKey: rcKey)
         }
 
         // Also load any locally stored key (for dev/testing only)
