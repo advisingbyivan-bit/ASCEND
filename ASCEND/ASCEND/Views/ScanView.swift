@@ -8,6 +8,7 @@ import Gamification
 /// The actual scanner is launched from the center tab button (RootView).
 struct ScanView: View {
     @Environment(AppState.self) private var appState
+    @State private var showIRISHistory = false
 
     private var activeZones: [BodyZone: ZoneStatus] {
         appState.latestDiagnosis?.zoneMap ?? [:]
@@ -16,7 +17,7 @@ struct ScanView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.ds_navy.ignoresSafeArea()
+                DSAnimatedBackground()
 
                 DSFloatingParticles(count: 10, colors: [Color.ds_purple.opacity(0.3), Color.ds_cyan.opacity(0.15)])
                     .ignoresSafeArea()
@@ -35,6 +36,21 @@ struct ScanView: View {
                         .foregroundStyle(Color.ds_cyan)
                         .tracking(2)
                 }
+                if !appState.scanHistory.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button {
+                            showIRISHistory = true
+                        } label: {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 15, weight: .medium))
+                                .foregroundStyle(Color.ds_cyan)
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showIRISHistory) {
+                IRISHistoryView()
+                    .environment(appState)
             }
         }
     }
@@ -105,7 +121,7 @@ struct ScanView: View {
 
     private var legendView: some View {
         HStack(spacing: DSSpacing.md) {
-            ForEach([(ZoneStatus.strong, "Strong"), (.moderate, "Moderate"), (.weak, "Weak"), (.target, "Target")], id: \.1) { status, label in
+            ForEach([(ZoneStatus.strong, "Strong"), (.moderate, "Moderate"), (.weak, "Weak"), (.covered, "Covered"), (.target, "Target")], id: \.1) { status, label in
                 HStack(spacing: 4) {
                     Circle()
                         .fill(status.color)

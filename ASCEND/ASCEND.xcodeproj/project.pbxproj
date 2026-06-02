@@ -36,11 +36,45 @@
 		AA000023 /* Secrets.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000023 /* Secrets.swift */; };
 		AA000024 /* WeightCheckInSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000024 /* WeightCheckInSheet.swift */; };
 		AA000025 /* SplashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000025 /* SplashView.swift */; };
+		AA000026 /* SprintChangeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000026 /* SprintChangeView.swift */; };
+		AA000027 /* LiveActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000027 /* LiveActivityManager.swift */; };
+		AA000028 /* IRISHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000028 /* IRISHistoryView.swift */; };
+		AA000029 /* WorkoutLogSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB000029 /* WorkoutLogSheet.swift */; };
 		AA100001 /* DesignSystem in Frameworks */ = {isa = PBXBuildFile; productRef = BA100001 /* DesignSystem */; };
 		AA100002 /* IRIS in Frameworks */ = {isa = PBXBuildFile; productRef = BA100002 /* IRIS */; };
 		AA100003 /* BodyModel3D in Frameworks */ = {isa = PBXBuildFile; productRef = BA100003 /* BodyModel3D */; };
 		AA100004 /* Scanner in Frameworks */ = {isa = PBXBuildFile; productRef = BA100004 /* Scanner */; };
+		WD000001 /* ASCENDLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = WD000003 /* ASCENDLiveActivity.swift */; };
+		WD000002 /* ASCENDWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = WD000004 /* ASCENDWidgetBundle.swift */; };
+		WD000030 /* ASCENDWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = WD000031 /* ASCENDWidget.swift */; };
+		WD000009 /* ASCENDWidgetsExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = WD000005 /* ASCENDWidgetsExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		WD000019 /* Gamification in Frameworks */ = {isa = PBXBuildFile; productRef = WD000018 /* Gamification */; };
+		WD000021 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = WD000022 /* Assets.xcassets */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		WD000006 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AE000010 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = WD000012;
+			remoteInfo = ASCENDWidgetsExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		WD000008 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				WD000009 /* ASCENDWidgetsExtension.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		AB000001 /* ASCENDApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASCENDApp.swift; sourceTree = "<group>"; };
@@ -62,12 +96,22 @@
 		AB000017 /* AnalyticsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsService.swift; sourceTree = "<group>"; };
 		AB000018 /* DataExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataExporter.swift; sourceTree = "<group>"; };
 		AB000019 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		AB000020 /* ASCEND.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ASCEND.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AB000021 /* ScanStoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanStoryView.swift; sourceTree = "<group>"; };
 		AB000022 /* APIKeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIKeyManager.swift; sourceTree = "<group>"; };
 		AB000023 /* Secrets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Secrets.swift; sourceTree = "<group>"; };
 		AB000024 /* WeightCheckInSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeightCheckInSheet.swift; sourceTree = "<group>"; };
 		AB000025 /* SplashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SplashView.swift; sourceTree = "<group>"; };
-		AB000020 /* ASCEND.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ASCEND.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AB000026 /* SprintChangeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SprintChangeView.swift; sourceTree = "<group>"; };
+		AB000027 /* LiveActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveActivityManager.swift; sourceTree = "<group>"; };
+		AB000028 /* IRISHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IRISHistoryView.swift; sourceTree = "<group>"; };
+		AB000029 /* WorkoutLogSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLogSheet.swift; sourceTree = "<group>"; };
+		WD000003 /* ASCENDLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASCENDLiveActivity.swift; sourceTree = "<group>"; };
+		WD000004 /* ASCENDWidgetBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASCENDWidgetBundle.swift; sourceTree = "<group>"; };
+		WD000031 /* ASCENDWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASCENDWidget.swift; sourceTree = "<group>"; };
+		WD000005 /* ASCENDWidgetsExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ASCENDWidgetsExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		WD000020 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		WD000022 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -90,6 +134,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		WD000010 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				WD000019 /* Gamification in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -97,6 +149,7 @@
 			isa = PBXGroup;
 			children = (
 				AD000002 /* ASCEND */,
+				WD000011 /* ASCENDWidgets */,
 				AD000006 /* Packages */,
 				AD000005 /* Products */,
 			);
@@ -120,6 +173,7 @@
 				AB000019 /* AppState.swift */,
 				AB000022 /* APIKeyManager.swift */,
 				AB000023 /* Secrets.swift */,
+				AB000027 /* LiveActivityManager.swift */,
 			);
 			path = ASCEND;
 			sourceTree = "<group>";
@@ -137,6 +191,9 @@
 				AB000021 /* ScanStoryView.swift */,
 				AB000024 /* WeightCheckInSheet.swift */,
 				AB000025 /* SplashView.swift */,
+				AB000026 /* SprintChangeView.swift */,
+				AB000028 /* IRISHistoryView.swift */,
+				AB000029 /* WorkoutLogSheet.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -153,6 +210,7 @@
 			isa = PBXGroup;
 			children = (
 				AB000020 /* ASCEND.app */,
+				WD000005 /* ASCENDWidgetsExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -162,6 +220,18 @@
 			children = (
 			);
 			name = Packages;
+			sourceTree = "<group>";
+		};
+		WD000011 /* ASCENDWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				WD000003 /* ASCENDLiveActivity.swift */,
+				WD000004 /* ASCENDWidgetBundle.swift */,
+				WD000031 /* ASCENDWidget.swift */,
+				WD000022 /* Assets.xcassets */,
+				WD000020 /* Info.plist */,
+			);
+			path = ASCENDWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -174,10 +244,12 @@
 				AE000002 /* Sources */,
 				AC000001 /* Frameworks */,
 				AE000003 /* Resources */,
+				WD000008 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				WD000007 /* PBXTargetDependency */,
 			);
 			name = ASCEND;
 			packageProductDependencies = (
@@ -198,6 +270,26 @@
 			productReference = AB000020 /* ASCEND.app */;
 			productType = "com.apple.product-type.application";
 		};
+		WD000012 /* ASCENDWidgetsExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = WD000017 /* Build configuration list for PBXNativeTarget "ASCENDWidgetsExtension" */;
+			buildPhases = (
+				WD000014 /* Sources */,
+				WD000010 /* Frameworks */,
+				WD000013 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ASCENDWidgetsExtension;
+			packageProductDependencies = (
+				WD000018 /* Gamification */,
+			);
+			productName = ASCENDWidgetsExtension;
+			productReference = WD000005 /* ASCENDWidgetsExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -209,6 +301,9 @@
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
 					AE000001 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+					WD000012 = {
 						CreatedOnToolsVersion = 16.4;
 					};
 				};
@@ -241,6 +336,7 @@
 			projectRoot = "";
 			targets = (
 				AE000001 /* ASCEND */,
+				WD000012 /* ASCENDWidgetsExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -252,6 +348,14 @@
 			files = (
 				AA000009 /* Assets.xcassets in Resources */,
 				AA000010 /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		WD000013 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				WD000021 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -281,10 +385,32 @@
 				AA000023 /* Secrets.swift in Sources */,
 				AA000024 /* WeightCheckInSheet.swift in Sources */,
 				AA000025 /* SplashView.swift in Sources */,
+				AA000026 /* SprintChangeView.swift in Sources */,
+				AA000027 /* LiveActivityManager.swift in Sources */,
+				AA000028 /* IRISHistoryView.swift in Sources */,
+				AA000029 /* WorkoutLogSheet.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		WD000014 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				WD000001 /* ASCENDLiveActivity.swift in Sources */,
+				WD000002 /* ASCENDWidgetBundle.swift in Sources */,
+				WD000030 /* ASCENDWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		WD000007 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = WD000012 /* ASCENDWidgetsExtension */;
+			targetProxy = WD000006 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		AF000010 /* Debug */ = {
@@ -415,7 +541,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ASCEND/ASCEND.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = G7F453K538;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ASCEND/Info.plist;
@@ -446,7 +573,8 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = ASCEND/ASCEND.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = G7F453K538;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = ASCEND/Info.plist;
@@ -462,6 +590,62 @@
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = us.ascendapp.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+		WD000015 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ASCENDWidgets/ASCENDWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = G7F453K538;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ASCENDWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "ASCEND Widgets";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = us.ascendapp.app.ASCENDWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		WD000016 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ASCENDWidgets/ASCENDWidgets.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 4;
+				DEVELOPMENT_TEAM = G7F453K538;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = ASCENDWidgets/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "ASCEND Widgets";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = us.ascendapp.app.ASCENDWidgets;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -487,6 +671,15 @@
 			buildConfigurations = (
 				AF000020 /* Debug */,
 				AF000021 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		WD000017 /* Build configuration list for PBXNativeTarget "ASCENDWidgetsExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				WD000015 /* Debug */,
+				WD000016 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -592,6 +785,10 @@
 		BA100012 /* Persistence */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = Persistence;
+		};
+		WD000018 /* Gamification */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Gamification;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

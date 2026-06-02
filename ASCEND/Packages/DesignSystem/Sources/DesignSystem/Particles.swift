@@ -4,6 +4,7 @@ public struct DSFloatingParticles: View {
     let particleCount: Int
     let colors: [Color]
     @State private var particles: [Particle] = []
+    @Environment(\.scenePhase) private var scenePhase
 
     public init(count: Int = 30, colors: [Color] = [.ds_purple, .ds_cyan]) {
         self.particleCount = count
@@ -11,23 +12,24 @@ public struct DSFloatingParticles: View {
     }
 
     public var body: some View {
-        GeometryReader { geo in
-            ZStack {
-                ForEach(particles) { p in
-                    Circle()
-                        .fill(p.color)
-                        .frame(width: p.size, height: p.size)
-                        .blur(radius: p.size * 0.4)
-                        .position(p.position)
-                        .opacity(p.opacity)
-                }
+        Canvas { context, size in
+            for p in particles {
+                let rect = CGRect(
+                    x: p.position.x - p.size / 2,
+                    y: p.position.y - p.size / 2,
+                    width: p.size,
+                    height: p.size
+                )
+                context.opacity = p.opacity
+                context.fill(Circle().path(in: rect), with: .color(p.color))
             }
-            .onAppear {
-                particles = (0..<particleCount).map { _ in
-                    Particle.random(in: geo.size, colors: colors)
-                }
-                animateParticles(bounds: geo.size)
+        }
+        .onAppear {
+            let bounds = UIScreen.main.bounds.size
+            particles = (0..<particleCount).map { _ in
+                Particle.random(in: bounds, colors: colors)
             }
+            animateParticles(bounds: bounds)
         }
         .allowsHitTesting(false)
     }
@@ -72,7 +74,7 @@ public struct DSAmbientBackground: View {
     public var body: some View {
         ZStack {
             Color.ds_navy.ignoresSafeArea()
-            DSFloatingParticles(count: 25, colors: [.ds_purple.opacity(0.6), .ds_cyan.opacity(0.3)])
+            DSFloatingParticles(count: 8, colors: [.ds_purple.opacity(0.6), .ds_cyan.opacity(0.3)])
                 .ignoresSafeArea()
         }
     }

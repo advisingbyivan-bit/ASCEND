@@ -112,14 +112,14 @@ struct WelcomeScreen: View {
                         .offset(y: showTagline ? 0 : 15)
                         .opacity(showTagline ? 1 : 0)
 
-                    Text("Scan · Diagnose · Transform")
+                    Text("Scan · Analyze · Transform")
                         .font(DSFont.caption)
                         .foregroundStyle(Color.ds_cyan)
                         .tracking(1.5)
                         .offset(y: showTagline ? 0 : 10)
                         .opacity(showTagline ? 0.8 : 0)
 
-                    Text("30 seconds. 3 angles. Your full body diagnosis.")
+                    Text("30 seconds. 3 angles. Your full body analysis.")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(Color.ds_textSecondary.opacity(0.5))
                         .offset(y: showTagline ? 0 : 8)

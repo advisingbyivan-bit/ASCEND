@@ -71,13 +71,20 @@ public final class SubscriptionManager {
 
     private var transactionListener: Task<Void, Never>?
 
+    /// Subscription product IDs managed by this class
+    private static let subscriptionProductIDs: Set<String> = Set(SubscriptionPlan.allCases.map(\.rawValue))
+
     private init() {
         // Fallback: Listen for StoreKit transaction updates directly
-        // (RevenueCat also does this internally, but we keep it for when RC isn't configured)
+        // Only handle subscription transactions — consumable credit packs are handled by CreditStore
         transactionListener = Task.detached { [weak self] in
             for await result in Transaction.updates {
                 guard let self else { return }
                 if case .verified(let transaction) = result {
+                    // Only finish subscription transactions; skip consumables so CreditStore can process them
+                    guard SubscriptionManager.subscriptionProductIDs.contains(transaction.productID) else {
+                        continue
+                    }
                     await transaction.finish()
                     await self.refreshStatus()
                 }
@@ -106,6 +113,9 @@ public final class SubscriptionManager {
         Purchases.configure(
             with: .init(withAPIKey: apiKey)
                 .with(appUserID: appUserID)
+                // Let our code finish transactions — prevents RC from auto-finishing
+                // consumable credit pack transactions before CreditStore processes them
+                .with(purchasesAreCompletedBy: .myApp, storeKitVersion: .storeKit2)
         )
 
         isRevenueCatConfigured = true
@@ -138,7 +148,9 @@ public final class SubscriptionManager {
             let productIDs = SubscriptionPlan.allCases.map(\.rawValue)
             let storeProducts = try await Product.products(for: Set(productIDs))
             products = storeProducts.sorted { $0.price > $1.price } // yearly first
+            print("[SubscriptionManager] Loaded \(products.count) StoreKit products: \(products.map(\.id))")
         } catch {
+            print("[SubscriptionManager] StoreKit loadProducts failed: \(error.localizedDescription)")
             purchaseError = "Failed to load products: \(error.localizedDescription)"
         }
     }
@@ -151,6 +163,12 @@ public final class SubscriptionManager {
             let offerings = try await Purchases.shared.offerings()
             if let current = offerings.current {
                 rcPackages = current.availablePackages
+                print("[SubscriptionManager] Loaded \(rcPackages.count) RC packages")
+                for pkg in rcPackages {
+                    print("  → \(pkg.storeProduct.productIdentifier) (\(pkg.packageType))")
+                }
+            } else {
+                print("[SubscriptionManager] No current offering found in RevenueCat")
             }
         } catch {
             print("[SubscriptionManager] Failed to load offerings: \(error.localizedDescription)")
@@ -163,37 +181,55 @@ public final class SubscriptionManager {
     public func purchase(plan: SubscriptionPlan) async -> Bool {
         purchaseError = nil
 
-        // Prefer RevenueCat if configured
-        if isRevenueCatConfigured {
+        // Prefer RevenueCat if configured AND has packages loaded
+        if isRevenueCatConfigured && !rcPackages.isEmpty {
             return await purchaseViaRevenueCat(plan: plan)
         }
 
-        // Fallback to raw StoreKit 2
+        // Use raw StoreKit 2 (works with local .storekit config in Xcode)
         return await purchaseViaStoreKit(plan: plan)
     }
 
     @MainActor
     private func purchaseViaRevenueCat(plan: SubscriptionPlan) async -> Bool {
-        guard let package = rcPackages.first(where: {
+        // Try package-based purchase first
+        if let package = rcPackages.first(where: {
             $0.storeProduct.productIdentifier == plan.rawValue
-        }) else {
-            // Package not in offerings — fall back to StoreKit
-            return await purchaseViaStoreKit(plan: plan)
+        }) {
+            do {
+                let (_, customerInfo, _) = try await Purchases.shared.purchase(package: package)
+                // With purchasesAreCompletedBy: .myApp, we must finish the SK2 transaction
+                await finishPendingSubscriptionTransactions()
+                updateStatusFromCustomerInfo(customerInfo)
+                return isPremium
+            } catch let error as RevenueCat.ErrorCode {
+                if error == .purchaseCancelledError { return false }
+                purchaseError = "Purchase failed: \(error.localizedDescription)"
+                return false
+            } catch {
+                purchaseError = "Purchase failed: \(error.localizedDescription)"
+                return false
+            }
         }
 
+        // Packages empty — try purchasing via RevenueCat product lookup
+        // (avoids raw StoreKit conflict when RC is observing transactions)
         do {
-            let (_, customerInfo, _) = try await Purchases.shared.purchase(package: package)
+            let rcProducts = try await Purchases.shared.products([plan.rawValue])
+            guard let rcProduct = rcProducts.first else {
+                // RC can't resolve the product either — fall back to raw StoreKit
+                return await purchaseViaStoreKit(plan: plan)
+            }
+            let (_, customerInfo, _) = try await Purchases.shared.purchase(product: rcProduct)
+            await finishPendingSubscriptionTransactions()
             updateStatusFromCustomerInfo(customerInfo)
             return isPremium
         } catch let error as RevenueCat.ErrorCode {
-            if error == .purchaseCancelledError {
-                return false
-            }
-            purchaseError = "Purchase failed: \(error.localizedDescription)"
-            return false
+            if error == .purchaseCancelledError { return false }
+            // RC product purchase failed — last resort: raw StoreKit
+            return await purchaseViaStoreKit(plan: plan)
         } catch {
-            purchaseError = "Purchase failed: \(error.localizedDescription)"
-            return false
+            return await purchaseViaStoreKit(plan: plan)
         }
     }
 
@@ -208,7 +244,7 @@ public final class SubscriptionManager {
             return await purchaseProduct(product)
         }
 
-        status = .expired
+        purchaseError = "Products aren't available yet. Try again later or skip for now."
         return false
     }
 
@@ -246,10 +282,17 @@ public final class SubscriptionManager {
 
     @MainActor
     public func restorePurchases() async -> Bool {
+        purchaseError = nil
+
         if isRevenueCatConfigured {
             do {
                 let customerInfo = try await Purchases.shared.restorePurchases()
+                // Finish any pending subscription transactions
+                await finishPendingSubscriptionTransactions()
                 updateStatusFromCustomerInfo(customerInfo)
+                if !isPremium {
+                    purchaseError = "No active subscription found."
+                }
                 return isPremium
             } catch {
                 purchaseError = "Restore failed: \(error.localizedDescription)"
@@ -260,11 +303,32 @@ public final class SubscriptionManager {
         // Fallback StoreKit
         do {
             try await AppStore.sync()
+            await finishPendingSubscriptionTransactions()
             await refreshStatus()
+            if !isPremium {
+                purchaseError = "No active subscription found."
+            }
             return isPremium
         } catch {
             purchaseError = "Restore failed: \(error.localizedDescription)"
             return false
+        }
+    }
+
+    // MARK: - Transaction Finishing
+
+    /// Finish any unfinished subscription transactions.
+    /// Required because `purchasesAreCompletedBy: .myApp` means RevenueCat
+    /// does NOT auto-finish transactions — the app must do it.
+    /// Only finishes subscription products; consumables are left for CreditStore.
+    private func finishPendingSubscriptionTransactions() async {
+        for productID in Self.subscriptionProductIDs {
+            if let result = await Transaction.latest(for: productID) {
+                if case .verified(let transaction) = result,
+                   transaction.revocationDate == nil {
+                    await transaction.finish()
+                }
+            }
         }
     }
 

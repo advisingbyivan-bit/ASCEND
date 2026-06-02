@@ -50,12 +50,8 @@ function validateRequest(body) {
   if (!body.max_tokens || typeof body.max_tokens !== "number") return false;
   // Limit max_tokens to prevent abuse
   if (body.max_tokens > 2048) return false;
-  // Only allow our models
-  const allowedModels = [
-    "claude-sonnet-4-20250514",
-    "claude-haiku-4-20250414",
-  ];
-  if (!allowedModels.includes(body.model)) return false;
+  // Allow any claude model — Anthropic will reject invalid ones
+  if (!body.model.startsWith("claude")) return false;
   return true;
 }
 

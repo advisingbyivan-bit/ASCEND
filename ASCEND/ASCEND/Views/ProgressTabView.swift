@@ -19,7 +19,7 @@ struct ProgressTabView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.ds_navy.ignoresSafeArea()
+                DSAnimatedBackground()
 
                 if !hasScans {
                     emptyState
@@ -49,6 +49,8 @@ struct ProgressTabView: View {
             }
             .onAppear {
                 selectedWeek = appState.weekNumber
+                // Load scan images lazily — only when user visits Progress tab
+                appState.loadScanImages()
             }
             .fullScreenCover(item: $storySnapshot) { snap in
                 ScanStoryView(snapshot: snap)
@@ -93,14 +95,23 @@ struct ProgressTabView: View {
     // MARK: - Timeline Header
 
     private var timelineHeader: some View {
-        VStack(spacing: DSSpacing.sm) {
+        let totalWeeks = appState.sprintWeeks
+        let currentWeek = min(selectedWeek, totalWeeks)
+        // Dynamic milestone markers based on sprint length
+        let markers: [Int] = {
+            if totalWeeks <= 8 { return [1, 4, totalWeeks] }
+            if totalWeeks <= 12 { return [1, 4, 8, totalWeeks] }
+            return [1, 4, 8, 12, totalWeeks]
+        }()
+
+        return VStack(spacing: DSSpacing.sm) {
             HStack {
-                Text("12-WEEK JOURNEY")
+                Text("\(totalWeeks)-WEEK SPRINT")
                     .font(DSFont.captionBold)
                     .foregroundStyle(Color.ds_cyan)
                     .tracking(2)
                 Spacer()
-                Text("Week \(min(selectedWeek, 12)) of 12")
+                Text("Week \(currentWeek) of \(totalWeeks)")
                     .font(DSFont.caption)
                     .foregroundStyle(Color.ds_textSecondary)
             }
@@ -108,23 +119,23 @@ struct ProgressTabView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.ds_charcoal)
+                        .fill(Color.white.opacity(0.06))
                         .frame(height: 8)
 
                     RoundedRectangle(cornerRadius: 4)
                         .fill(Color.ds_cyan)
-                        .frame(width: geo.size.width * CGFloat(min(selectedWeek, 12)) / 12, height: 8)
+                        .frame(width: geo.size.width * CGFloat(currentWeek) / CGFloat(totalWeeks), height: 8)
                         .shadow(color: Color.ds_cyan.opacity(0.4), radius: 4)
                 }
             }
             .frame(height: 8)
 
             HStack {
-                ForEach([1, 4, 8, 12], id: \.self) { week in
+                ForEach(markers, id: \.self) { week in
                     Text("W\(week)")
                         .font(DSFont.micro)
                         .foregroundStyle(week <= selectedWeek ? Color.ds_cyan : Color.ds_textSecondary)
-                    if week < 12 {
+                    if week < markers.last ?? totalWeeks {
                         Spacer()
                     }
                 }
@@ -140,7 +151,7 @@ struct ProgressTabView: View {
     private var weekBreakdown: some View {
         VStack(spacing: DSSpacing.sm) {
             HStack {
-                Text("WEEK \(min(selectedWeek, 12)) SUMMARY")
+                Text("WEEK \(min(selectedWeek, appState.sprintWeeks)) SUMMARY")
                     .font(DSFont.captionBold)
                     .foregroundStyle(Color.ds_cyan)
                     .tracking(2)
@@ -236,6 +247,7 @@ struct ProgressTabView: View {
         case .weak: "Weak"
         case .target: "Target"
         case .base: "Base"
+        case .covered: "Covered"
         }
         return Text(label)
             .font(DSFont.micro)
@@ -296,7 +308,7 @@ struct ProgressTabView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 8))
             } else {
                 RoundedRectangle(cornerRadius: 8)
-                    .fill(Color.ds_charcoal)
+                    .fill(Color.white.opacity(0.06))
                     .frame(width: 80, height: 120)
                     .overlay {
                         Image(systemName: "person.fill")
@@ -344,38 +356,98 @@ struct ProgressTabView: View {
         .padding(.horizontal, DSSpacing.screenPadding)
     }
 
-    // MARK: - Consistency Tracker
+    // MARK: - Sprint Tracker
 
     private var consistencyTracker: some View {
-        VStack(spacing: DSSpacing.xs) {
+        let totalWeeks = appState.sprintWeeks
+        let currentWeek = min(appState.weekNumber, totalWeeks)
+        let cols = totalWeeks <= 8 ? 4 : 6
+
+        return VStack(spacing: DSSpacing.sm) {
             HStack {
-                Text("12-WEEK CONSISTENCY")
+                Text("SPRINT TRACKER")
                     .font(DSFont.captionBold)
                     .foregroundStyle(Color.ds_cyan)
                     .tracking(2)
                 Spacer()
+                Text("Week \(currentWeek) of \(totalWeeks)")
+                    .font(DSFont.micro)
+                    .foregroundStyle(Color.ds_textSecondary)
             }
 
-            let weeks = 12
-            let cols = 6
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: cols), spacing: 4) {
-                ForEach(0..<weeks, id: \.self) { week in
-                    let active = week < selectedWeek
-                    let intensity = active ? min(Double(appState.weeklyScans) / 5.0, 1.0) : 0.1
+            // Sprint progress bar
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.white.opacity(0.06))
+                        .frame(height: 6)
 
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color.ds_cyan.opacity(active ? max(intensity, 0.2) : 0.05))
-                        .frame(height: 28)
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.ds_cyan, Color.ds_purple],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * CGFloat(currentWeek) / CGFloat(totalWeeks), height: 6)
+                        .shadow(color: Color.ds_cyan.opacity(0.3), radius: 4)
+                }
+            }
+            .frame(height: 6)
+
+            // Weekly engagement grid
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: cols), spacing: 4) {
+                ForEach(0..<totalWeeks, id: \.self) { week in
+                    let weekNum = week + 1
+                    let isCurrent = weekNum == currentWeek
+                    let isPast = weekNum < currentWeek
+                    let engagedDays = isCurrent ? appState.engagementWeekdays.count : (isPast ? 7 : 0)
+                    let intensity = isPast ? 0.5 : (isCurrent ? min(Double(engagedDays) / 7.0, 1.0) : 0)
+
+                    RoundedRectangle(cornerRadius: 6)
+                        .fill(Color.ds_cyan.opacity(isPast || isCurrent ? max(intensity, 0.15) : 0.04))
+                        .frame(height: 32)
                         .overlay(
-                            Text("W\(week + 1)")
-                                .font(.system(size: 8, weight: .medium))
-                                .foregroundStyle(active ? Color.ds_textPrimary : Color.ds_textSecondary.opacity(0.5))
+                            VStack(spacing: 1) {
+                                Text("W\(weekNum)")
+                                    .font(.system(size: 9, weight: .semibold))
+                                    .foregroundStyle(isPast || isCurrent ? Color.ds_textPrimary : Color.ds_textSecondary.opacity(0.4))
+                                if isCurrent {
+                                    Text("\(engagedDays)/7")
+                                        .font(.system(size: 7, weight: .medium))
+                                        .foregroundStyle(Color.ds_cyan)
+                                }
+                            }
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(isCurrent ? Color.ds_cyan.opacity(0.5) : Color.clear, lineWidth: 1)
                         )
                 }
+            }
+
+            // Sprint stats
+            HStack(spacing: DSSpacing.md) {
+                sprintStat(value: "\(currentWeek)", label: "Current Week", color: Color.ds_cyan)
+                sprintStat(value: "\(appState.engagementWeekdays.count)", label: "Days This Week", color: Color.ds_green)
+                sprintStat(value: "\(appState.currentStreak)", label: "Day Streak", color: appState.streakTier.color)
             }
         }
         .dsCard()
         .padding(.horizontal, DSSpacing.screenPadding)
+    }
+
+    private func sprintStat(value: String, label: String, color: Color) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.system(size: 18, weight: .bold, design: .rounded))
+                .foregroundStyle(color)
+            Text(label)
+                .font(DSFont.micro)
+                .foregroundStyle(Color.ds_textSecondary)
+        }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Milestone Badges

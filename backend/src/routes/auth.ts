@@ -6,10 +6,53 @@ import { generateToken } from "../middleware/auth";
 import { verifyAppleToken } from "../services/appleAuth";
 import { verifyGoogleToken } from "../services/googleAuth";
 import { AppError, Errors } from "../middleware/errorHandler";
+import { getRedisClient } from "../services/redis";
 
 const router = Router();
 
 const BCRYPT_ROUNDS = 12;
+
+// --- Auth Rate Limiting ---
+
+const AUTH_RATE_LIMIT_MAX = 10;      // max attempts per window
+const AUTH_RATE_LIMIT_WINDOW = 900;  // 15 minutes
+
+const inMemoryRateLimit = new Map<string, { count: number; resetAt: number }>();
+
+async function checkAuthRateLimit(ip: string): Promise<void> {
+  let client;
+  try {
+    client = getRedisClient();
+    const key = `auth:rl:${ip}`;
+    const current = await client.incr(key);
+    if (current === 1) {
+      await client.expire(key, AUTH_RATE_LIMIT_WINDOW);
+    }
+    if (current > AUTH_RATE_LIMIT_MAX) {
+      throw Errors.badRequest(
+        "Too many login attempts. Please try again in 15 minutes."
+      );
+    }
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    // Redis unavailable — fall back to in-memory rate limiting
+    const now = Date.now();
+    const entry = inMemoryRateLimit.get(ip);
+    if (entry && entry.resetAt > now) {
+      entry.count++;
+      if (entry.count > AUTH_RATE_LIMIT_MAX) {
+        throw Errors.badRequest(
+          "Too many login attempts. Please try again in 15 minutes."
+        );
+      }
+    } else {
+      inMemoryRateLimit.set(ip, {
+        count: 1,
+        resetAt: now + AUTH_RATE_LIMIT_WINDOW * 1000,
+      });
+    }
+  }
+}
 
 // --- Validation helpers ---
 
@@ -33,6 +76,7 @@ router.post(
   "/apple",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await checkAuthRateLimit(req.ip || "unknown");
       const { identityToken, displayName, email } = req.body;
 
       if (!identityToken) {
@@ -88,6 +132,7 @@ router.post(
   "/google",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await checkAuthRateLimit(req.ip || "unknown");
       const { idToken, displayName, email } = req.body;
 
       if (!idToken) {
@@ -143,6 +188,7 @@ router.post(
   "/register",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await checkAuthRateLimit(req.ip || "unknown");
       const { email, password, displayName, gender, age, height_cm, weight_kg, goal_weight_kg } =
         req.body;
 
@@ -217,6 +263,7 @@ router.post(
   "/login",
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      await checkAuthRateLimit(req.ip || "unknown");
       const { email, password } = req.body;
 
       if (!email || !password) {

@@ -2,13 +2,56 @@ import { Router, Request, Response, NextFunction } from "express";
 import { requireAuth } from "../middleware/auth";
 import { ScanModel } from "../models/Scan";
 import { DiagnosisModel } from "../models/Diagnosis";
-import { Errors } from "../middleware/errorHandler";
+import { AppError, Errors } from "../middleware/errorHandler";
 import { getDiagnosisQueue } from "../jobs/diagnosisWorker";
+import { getRedisClient } from "../services/redis";
 
 const router = Router();
 
 // All routes require authentication
 router.use(requireAuth);
+
+// --- Rate Limiting for Diagnosis Requests ---
+
+const DIAGNOSIS_RATE_LIMIT_MAX = 5;       // max requests per user per window
+const DIAGNOSIS_RATE_LIMIT_WINDOW = 3600;  // 1 hour in seconds
+
+const diagnosisRateLimitFallback = new Map<string, { count: number; resetAt: number }>();
+
+async function checkDiagnosisRateLimit(userId: string): Promise<void> {
+  let client;
+  try {
+    client = getRedisClient();
+    const key = `diagnosis:rl:${userId}`;
+    const current = await client.incr(key);
+    if (current === 1) {
+      await client.expire(key, DIAGNOSIS_RATE_LIMIT_WINDOW);
+    }
+    if (current > DIAGNOSIS_RATE_LIMIT_MAX) {
+      throw Errors.badRequest(
+        "Rate limit exceeded: maximum 5 diagnosis requests per hour. Please try again later."
+      );
+    }
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    // Redis unavailable — fall back to in-memory rate limiting
+    const now = Date.now();
+    const entry = diagnosisRateLimitFallback.get(userId);
+    if (entry && entry.resetAt > now) {
+      entry.count++;
+      if (entry.count > DIAGNOSIS_RATE_LIMIT_MAX) {
+        throw Errors.badRequest(
+          "Rate limit exceeded: maximum 5 diagnosis requests per hour. Please try again later."
+        );
+      }
+    } else {
+      diagnosisRateLimitFallback.set(userId, {
+        count: 1,
+        resetAt: now + DIAGNOSIS_RATE_LIMIT_WINDOW * 1000,
+      });
+    }
+  }
+}
 
 // --- POST /diagnoses ---
 // Trigger Claude Vision analysis for a scan. Enqueues a Bull job.
@@ -16,6 +59,10 @@ router.use(requireAuth);
 router.post("/", async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.userId!;
+
+    // Enforce per-user rate limit
+    await checkDiagnosisRateLimit(userId);
+
     const { scanId } = req.body;
 
     if (!scanId) {

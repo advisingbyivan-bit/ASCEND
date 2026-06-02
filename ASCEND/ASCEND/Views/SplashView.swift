@@ -59,7 +59,7 @@ struct SplashView: View {
 
                 // Tagline
                 if showTagline {
-                    Text("YOUR BODY. DIAGNOSED.")
+                    Text("YOUR BODY. ANALYZED.")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(Color.ds_textSecondary)
                         .tracking(4)

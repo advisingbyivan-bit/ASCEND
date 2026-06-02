@@ -18,12 +18,13 @@ extension BodyZone {
 }
 
 extension ZoneStatus {
-    static func from(_ string: String) -> ZoneStatus? {
+    public static func from(_ string: String) -> ZoneStatus? {
         switch string.lowercased().trimmingCharacters(in: .whitespaces) {
         case "weak", "declining": return .weak
         case "moderate", "maintaining": return .moderate
         case "strong", "improving": return .strong
         case "target": return .target
+        case "covered", "not_visible", "hidden": return .covered
         default: return .moderate
         }
     }

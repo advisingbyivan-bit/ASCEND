@@ -28,20 +28,20 @@ public final class ScanCreditManager {
     private static let scanCooldownSeconds: TimeInterval = 3600
 
     // MARK: - State
+    //
+    // Stored properties so @Observable tracks mutations and notifies SwiftUI.
+    // Persistence to UserDefaults is explicit via persist() — NOT didSet,
+    // because @Observable's macro can silently strip property observers.
 
-    public private(set) var credits: Int {
-        get { UserDefaults.standard.integer(forKey: Keys.credits) }
-        set { UserDefaults.standard.set(newValue, forKey: Keys.credits) }
-    }
+    public private(set) var credits: Int = 0
+    public private(set) var totalEarned: Int = 0
+    public private(set) var totalSpent: Int = 0
+    private var hasUsedFirstFree: Bool = false
 
-    public private(set) var totalEarned: Int {
-        get { UserDefaults.standard.integer(forKey: Keys.totalCreditsEarned) }
-        set { UserDefaults.standard.set(newValue, forKey: Keys.totalCreditsEarned) }
-    }
-
-    public private(set) var totalSpent: Int {
-        get { UserDefaults.standard.integer(forKey: Keys.totalCreditsSpent) }
-        set { UserDefaults.standard.set(newValue, forKey: Keys.totalCreditsSpent) }
+    /// Number of scans available (includes first-free). Use for compact header display.
+    public var availableScans: Int {
+        if !hasUsedFirstFree { return max(1, credits + 1) }
+        return credits
     }
 
     private var lastFreeResetDate: Date? {
@@ -49,9 +49,12 @@ public final class ScanCreditManager {
         set { UserDefaults.standard.set(newValue, forKey: Keys.lastFreeReset) }
     }
 
-    private var hasUsedFirstFree: Bool {
-        get { UserDefaults.standard.bool(forKey: Keys.hasUsedFirstFree) }
-        set { UserDefaults.standard.set(newValue, forKey: Keys.hasUsedFirstFree) }
+    /// Write current state to UserDefaults. Called after every mutation.
+    private func persist() {
+        UserDefaults.standard.set(credits, forKey: Keys.credits)
+        UserDefaults.standard.set(totalEarned, forKey: Keys.totalCreditsEarned)
+        UserDefaults.standard.set(totalSpent, forKey: Keys.totalCreditsSpent)
+        UserDefaults.standard.set(hasUsedFirstFree, forKey: Keys.hasUsedFirstFree)
     }
 
     /// Set of milestone day counts that have already awarded credits
@@ -105,7 +108,13 @@ public final class ScanCreditManager {
 
     // MARK: - Init
 
-    private init() {}
+    private init() {
+        // Hydrate stored properties from UserDefaults so @Observable can track them
+        credits = UserDefaults.standard.integer(forKey: Keys.credits)
+        totalEarned = UserDefaults.standard.integer(forKey: Keys.totalCreditsEarned)
+        totalSpent = UserDefaults.standard.integer(forKey: Keys.totalCreditsSpent)
+        hasUsedFirstFree = UserDefaults.standard.bool(forKey: Keys.hasUsedFirstFree)
+    }
 
     // MARK: - Credit Operations
 
@@ -116,6 +125,7 @@ public final class ScanCreditManager {
         if !hasUsedFirstFree {
             hasUsedFirstFree = true
             lastScanTimestamp = Date()
+            persist()
             return true
         }
 
@@ -123,6 +133,7 @@ public final class ScanCreditManager {
         credits -= 1
         totalSpent += 1
         lastScanTimestamp = Date()
+        persist()
         return true
     }
 
@@ -131,6 +142,8 @@ public final class ScanCreditManager {
         credits += count
         totalEarned += count
         _lastCreditSource = source
+        persist()
+        print("[ScanCreditManager] +\(count) credits (source: \(source.rawValue)). Total: \(credits)")
     }
 
     /// Check and award the weekly free credit for subscribers.
@@ -203,6 +216,7 @@ public final class ScanCreditManager {
         lastFreeResetDate = nil
         hasUsedFirstFree = false
         awardedMilestones = []
+        persist()
     }
 
     // MARK: - Internal

@@ -22,6 +22,7 @@ public final class DiagnosisRevealViewModel {
     public private(set) var showMessage = false
     public private(set) var showConfetti = false
     public private(set) var showCTA = false
+    public private(set) var showZoneGrid = false
     public private(set) var messageText = ""
     public private(set) var errorMessage = ""
     public private(set) var isUsingFallback = false
@@ -84,6 +85,7 @@ public final class DiagnosisRevealViewModel {
         showMessage = false
         showConfetti = false
         showCTA = false
+        showZoneGrid = false
         messageText = ""
         analysisProgress = 0
         errorMessage = ""
@@ -104,11 +106,12 @@ public final class DiagnosisRevealViewModel {
     /// Start the API call as a concurrent task, returns a task handle
     private func startAPICall() -> Task<DiagnosisResult, Error> {
         Task {
+            let hasAPIAccess = !ClaudeVisionClient.shared.apiKey.isEmpty || !ClaudeVisionClient.shared.proxyBaseURL.isEmpty
             if photos.count >= 3,
                let front = photos[0].jpegData(compressionQuality: 0.8),
                let side = photos[1].jpegData(compressionQuality: 0.8),
                let back = photos[2].jpegData(compressionQuality: 0.8),
-               !ClaudeVisionClient.shared.apiKey.isEmpty {
+               hasAPIAccess {
                 let response = try await ClaudeVisionClient.shared.analyzeBody(
                     frontImageData: front,
                     sideImageData: side,
@@ -177,7 +180,20 @@ public final class DiagnosisRevealViewModel {
     @MainActor
     public func messageFinished() {
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(300))
+            // Hold message briefly, then fade out and show zone grid
+            try? await Task.sleep(for: .milliseconds(1200))
+
+            withAnimation(.easeInOut(duration: 0.4)) {
+                showMessage = false
+            }
+
+            try? await Task.sleep(for: .milliseconds(500))
+
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.8)) {
+                showZoneGrid = true
+            }
+
+            try? await Task.sleep(for: .milliseconds(800))
             await transitionToCelebration()
         }
     }

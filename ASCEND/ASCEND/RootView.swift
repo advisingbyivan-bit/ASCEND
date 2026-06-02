@@ -82,10 +82,43 @@ struct RootView: View {
         }
         .padding(.top, 2)
         .padding(.bottom, 4)
-        .background(
-            Color.ds_navy.opacity(0.85)
-                .ignoresSafeArea(.all, edges: .bottom)
-        )
+        .background {
+            // Glass tab bar — subtle, matches refined card treatment
+            ZStack {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                Rectangle()
+                    .fill(
+                        LinearGradient(
+                            stops: [
+                                .init(color: Color.white.opacity(0.10), location: 0),
+                                .init(color: Color.ds_cyan.opacity(0.03), location: 0.15),
+                                .init(color: Color.ds_cyan.opacity(0.015), location: 1.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            }
+            .ignoresSafeArea(.all, edges: .bottom)
+        }
+        .overlay(alignment: .top) {
+            // Natural light edge — subtle specular catch
+            Rectangle()
+                .fill(
+                    LinearGradient(
+                        stops: [
+                            .init(color: Color.white.opacity(0.30), location: 0),
+                            .init(color: Color.white.opacity(0.10), location: 0.3),
+                            .init(color: Color.ds_cyan.opacity(0.06), location: 0.7),
+                            .init(color: Color.ds_cyan.opacity(0.08), location: 1.0)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .frame(height: 0.5)
+        }
         .contentShape(Rectangle())
     }
 
@@ -191,6 +224,7 @@ private struct ScanFlowNavigator: View {
                 case .weak: "weak"
                 case .target: "target"
                 case .base: "base"
+                case .covered: "covered"
                 }
                 return (zone: item.zone.rawValue, status: statusStr, score: item.delta)
             }
@@ -210,13 +244,14 @@ private struct ScanFlowNavigator: View {
             bodyConcerns: profile?.bodyConcerns ?? "",
             trainingFrequency: profile?.trainingFrequency ?? "",
             timeline: profile?.timeline ?? "",
-            previousZones: previousZones
+            previousZones: previousZones,
+            previousOverallScore: appState.latestDiagnosis?.overallScore
         )
     }
 
     var body: some View {
         if showDiagnosis {
-            DiagnosisRevealView(photos: scanPhotos, userContext: userContext) { result in
+            DiagnosisRevealView(photos: scanPhotos, gender: appState.gender, userContext: userContext) { result in
                 appState.completeScan(photos: scanPhotos, diagnosis: result)
                 dismiss()
             }

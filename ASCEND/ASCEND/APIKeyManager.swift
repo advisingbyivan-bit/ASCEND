@@ -34,6 +34,9 @@ enum APIKeyManager {
             SubscriptionManager.shared.configure(apiKey: rcKey)
         }
 
+        // Warm up CreditStore so its transaction listener is active from launch
+        _ = CreditStore.shared
+
         // Also load any locally stored key (for dev/testing only)
         if let key = load(), !key.isEmpty {
             ClaudeVisionClient.shared.apiKey = key

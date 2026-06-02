@@ -123,8 +123,6 @@ public struct OnboardingFlowView: View {
             Cal04_AffirmationScreen(coordinator: coordinator)
         case .thankYou:
             Cal05_ThankYouScreen(coordinator: coordinator)
-        case .healthConnect:
-            Cal06_HealthConnectScreen(coordinator: coordinator)
         case .notifications:
             Cal09_NotificationsScreen(coordinator: coordinator)
         case .allDone:

@@ -44,6 +44,10 @@ const ALLOWED_UPDATE_FIELDS = new Set([
 
 const VALID_GENDERS = new Set(["male", "female", "other"]);
 const VALID_FREQUENCIES = new Set(["sedentary", "light", "moderate", "active", "intense"]);
+const VALID_BODY_CONCERNS = new Set([
+  "chest", "back", "shoulders", "arms", "legs", "core",
+  "glutes", "abs", "calves", "neck", "forearms", "traps",
+]);
 const VALID_DAYS = new Set([
   "Monday",
   "Tuesday",
@@ -70,11 +74,32 @@ router.put("/me", async (req: Request, res: Response, next: NextFunction) => {
 
     // Validate specific fields
     if (updates.display_name !== undefined) {
-      const name = String(updates.display_name).trim();
-      if (name.length < 1 || name.length > 100) {
-        throw Errors.badRequest("display_name must be 1-100 characters");
+      // Strip characters that aren't alphanumeric, spaces, hyphens, periods, or apostrophes
+      const name = String(updates.display_name)
+        .replace(/[^a-zA-Z0-9 .'\-]/g, "")
+        .trim();
+      if (name.length < 1 || name.length > 50) {
+        throw Errors.badRequest("display_name must be 1-50 characters (letters, numbers, spaces, basic punctuation only)");
       }
       updates.display_name = name;
+    }
+
+    if (updates.body_concerns !== undefined) {
+      const raw = String(updates.body_concerns).trim();
+      if (raw.length === 0) {
+        // Allow clearing body concerns
+        updates.body_concerns = "";
+      } else {
+        const parts = raw.split(",").map((s: string) => s.trim().toLowerCase());
+        const invalid = parts.filter((p: string) => !VALID_BODY_CONCERNS.has(p));
+        if (invalid.length > 0) {
+          throw Errors.badRequest(
+            `Invalid body concerns: ${invalid.join(", ")}. Allowed values: ${[...VALID_BODY_CONCERNS].join(", ")}`
+          );
+        }
+        // Store normalized, deduplicated value
+        updates.body_concerns = [...new Set(parts)].join(",");
+      }
     }
 
     if (updates.gender !== undefined && !VALID_GENDERS.has(updates.gender)) {

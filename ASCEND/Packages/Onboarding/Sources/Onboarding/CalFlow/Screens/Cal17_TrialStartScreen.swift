@@ -34,7 +34,7 @@ struct Cal17_TrialStartScreen: View {
                     TrialTimelineStep(
                         icon: "lock.open.fill", iconColor: Color.ds_cyan,
                         title: "Today",
-                        subtitle: "Unlock all features including AI body scanning and IRIS diagnostics.",
+                        subtitle: "Unlock all features including AI body scanning and IRIS analysis.",
                         isLast: false
                     )
                     TrialTimelineStep(

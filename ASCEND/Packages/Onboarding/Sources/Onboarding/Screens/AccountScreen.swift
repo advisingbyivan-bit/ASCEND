@@ -273,7 +273,7 @@ private struct OrbitingCardsView: View {
 
     private let cards: [(icon: String, title: String, color: Color, mockup: CardMockupType)] = [
         ("chart.bar.fill", "Dashboard", Color.ds_cyan, .dashboard),
-        ("waveform.path.ecg", "Diagnosis", Color.ds_purple, .diagnosis),
+        ("waveform.path.ecg", "Analysis", Color.ds_purple, .diagnosis),
         ("trophy.fill", "Leaderboard", Color.ds_yellow, .leaderboard),
         ("figure.stand", "Body Twin", Color.ds_green, .bodyModel),
     ]

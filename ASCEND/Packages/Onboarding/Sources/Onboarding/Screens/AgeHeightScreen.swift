@@ -9,8 +9,12 @@ struct AgeHeightScreen: View {
     @State private var showButton = false
     @State private var useMetric = false
 
+    // Local state to avoid @Observable feedback loop on the picker
+    @State private var localAge: Int = 25
+    @State private var localHeightCm: Int = 175
+
     private var heightDisplay: String {
-        let cm = coordinator.data.heightCm
+        let cm = localHeightCm
         if useMetric {
             return "\(cm) cm"
         } else {
@@ -33,39 +37,32 @@ struct AgeHeightScreen: View {
                     .scaleEffect(showTitle ? 1 : 0.9)
                     .opacity(showTitle ? 1 : 0)
 
-                Text("Used to personalize your diagnosis")
+                Text("Used to personalize your analysis")
                     .font(DSFont.body)
                     .foregroundStyle(Color.ds_textSecondary)
                     .opacity(showTitle ? 1 : 0)
             }
             .padding(.bottom, DSSpacing.xl)
 
-            // Age — horizontal scroll ruler
+            // Age — wheel picker
             VStack(spacing: DSSpacing.sm) {
                 Text("AGE")
                     .font(DSFont.captionBold)
                     .foregroundStyle(Color.ds_cyan)
                     .tracking(2)
 
-                Text("\(coordinator.data.age)")
-                    .font(.system(size: 48, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.ds_textPrimary)
-                    .shadow(color: Color.ds_cyan.opacity(0.2), radius: 8)
-                    .transaction { $0.animation = nil }
-
-                HorizontalRulerPicker(
-                    value: Binding(
-                        get: { coordinator.data.age },
-                        set: { coordinator.data.age = $0 }
-                    ),
-                    range: 17...80,
-                    majorEvery: 5,
-                    labelBuilder: { $0 % 5 == 0 ? "\($0)" : nil }
-                )
-                .frame(height: 70)
+                Picker("Age", selection: $localAge) {
+                    ForEach(18...80, id: \.self) { age in
+                        Text("\(age)")
+                            .tag(age)
+                    }
+                }
+                .pickerStyle(.wheel)
+                .frame(height: 150)
+                .clipped()
+                .colorScheme(.dark)
             }
             .opacity(showAge ? 1 : 0)
-            .offset(y: showAge ? 0 : 20)
 
             Spacer().frame(height: DSSpacing.xl)
 
@@ -99,13 +96,11 @@ struct AgeHeightScreen: View {
                     .font(.system(size: 48, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.ds_textPrimary)
                     .shadow(color: Color.ds_cyan.opacity(0.2), radius: 8)
-                    .transaction { $0.animation = nil }
+                    .contentTransition(.numericText())
+                    .animation(.none, value: localHeightCm)
 
                 HorizontalRulerPicker(
-                    value: Binding(
-                        get: { coordinator.data.heightCm },
-                        set: { coordinator.data.heightCm = $0 }
-                    ),
+                    value: $localHeightCm,
                     range: 120...220,
                     majorEvery: 0, // custom logic
                     labelBuilder: { cm in
@@ -149,6 +144,9 @@ struct AgeHeightScreen: View {
 
             DSPrimaryButton("Continue", icon: "arrow.right") {
                 DSHaptic.medium()
+                // Sync local state to coordinator before advancing
+                coordinator.data.age = localAge
+                coordinator.data.heightCm = localHeightCm
                 coordinator.advance()
             }
             .padding(.horizontal, DSSpacing.screenPadding)
@@ -157,11 +155,15 @@ struct AgeHeightScreen: View {
             .opacity(showButton ? 1 : 0)
         }
         .onAppear {
+            // Seed local state from coordinator
+            localAge = coordinator.data.age
+            localHeightCm = coordinator.data.heightCm
+
             DSHaptic.screenEntry()
             withAnimation(.easeOut(duration: 0.5)) { showTitle = true }
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.75).delay(0.3)) { showAge = true }
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.75).delay(0.5)) { showHeight = true }
-            withAnimation(.spring(response: 0.5, dampingFraction: 0.7).delay(0.7)) { showButton = true }
+            withAnimation(.easeOut(duration: 0.4).delay(0.3)) { showAge = true }
+            withAnimation(.easeOut(duration: 0.4).delay(0.5)) { showHeight = true }
+            withAnimation(.easeOut(duration: 0.4).delay(0.7)) { showButton = true }
         }
     }
 
@@ -257,29 +259,23 @@ private struct HorizontalRulerPicker: View {
             }
             .scrollPosition(id: $scrolledID, anchor: .center)
             .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
-            .animation(nil, value: scrolledID)
             .onAppear {
-                // Set initial position without animation to prevent spring bounce
-                DispatchQueue.main.async {
-                    var transaction = Transaction()
-                    transaction.disablesAnimations = true
-                    withTransaction(transaction) {
-                        scrolledID = value
-                    }
-                    lastHapticValue = value
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                scrolledID = value
+                lastHapticValue = value
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
                     hasInitialized = true
                 }
             }
             .onChange(of: scrolledID) { _, newID in
                 guard let newID else { return }
+                // Always sync the binding (so the display updates)
                 if newID != value {
                     value = newID
-                    if hasInitialized && newID != lastHapticValue {
-                        lastHapticValue = newID
-                        DSHaptic.sliderTick()
-                    }
+                }
+                // Only haptic after initialization
+                if hasInitialized && newID != lastHapticValue {
+                    lastHapticValue = newID
+                    DSHaptic.sliderTick()
                 }
             }
             // Center indicator

@@ -11,7 +11,7 @@ public final class DataStore {
 
     private init() {
         // Fast-fail: try persistent once, then in-memory once. No slow retry chain.
-        let schema = Schema([ScanRecord.self, UserProfile.self])
+        let schema = Schema([ScanRecord.self, UserProfile.self, WorkoutEntry.self])
         var resolved: ModelContainer?
 
         // First try: persistent storage
@@ -95,12 +95,69 @@ public final class DataStore {
         }
     }
 
+    /// Update a single field on the most recent profile.
+    @MainActor
+    public func updateProfileField<T>(_ keyPath: ReferenceWritableKeyPath<UserProfile, T>, value: T) throws {
+        guard let container else { return }
+        let context = container.mainContext
+        let descriptor = FetchDescriptor<UserProfile>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        if let profile = try context.fetch(descriptor).first {
+            profile[keyPath: keyPath] = value
+            try context.save()
+        }
+    }
+
+    // MARK: - Workout Entries
+
+    @MainActor
+    public func saveWorkout(_ entry: WorkoutEntry) throws {
+        guard let container else { return }
+        let context = container.mainContext
+        context.insert(entry)
+        try context.save()
+    }
+
+    @MainActor
+    public func fetchWorkouts() throws -> [WorkoutEntry] {
+        guard let container else { return [] }
+        let context = container.mainContext
+        let descriptor = FetchDescriptor<WorkoutEntry>(sortBy: [SortDescriptor(\.date, order: .reverse)])
+        return try context.fetch(descriptor)
+    }
+
+    /// Check if the user logged a workout today.
+    @MainActor
+    public func hasWorkoutToday() throws -> Bool {
+        guard let container else { return false }
+        let context = container.mainContext
+        let startOfDay = Calendar.current.startOfDay(for: Date())
+        let predicate = #Predicate<WorkoutEntry> { $0.date >= startOfDay }
+        var descriptor = FetchDescriptor<WorkoutEntry>(predicate: predicate)
+        descriptor.fetchLimit = 1
+        return try !context.fetch(descriptor).isEmpty
+    }
+
+    /// Fetch all workout weekdays this week (1=Sun … 7=Sat).
+    @MainActor
+    public func workoutWeekdays() throws -> Set<Int> {
+        guard let container else { return [] }
+        let context = container.mainContext
+        let startOfWeek = Calendar.current.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        let predicate = #Predicate<WorkoutEntry> { $0.date >= startOfWeek }
+        let descriptor = FetchDescriptor<WorkoutEntry>(predicate: predicate)
+        let entries = try context.fetch(descriptor)
+        return Set(entries.map { Calendar.current.component(.weekday, from: $0.date) })
+    }
+
+    // MARK: - Delete All
+
     @MainActor
     public func deleteAllData() throws {
         guard let container else { return }
         let context = container.mainContext
         try context.delete(model: ScanRecord.self)
         try context.delete(model: UserProfile.self)
+        try context.delete(model: WorkoutEntry.self)
         try context.save()
     }
 }

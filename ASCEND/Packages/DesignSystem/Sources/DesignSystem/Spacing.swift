@@ -13,7 +13,7 @@ public enum DSSpacing {
     public static let huge: CGFloat = 56
     public static let massive: CGFloat = 80
 
-    public static let cardRadius: CGFloat = 12
-    public static let buttonRadius: CGFloat = 12
+    public static let cardRadius: CGFloat = 20
+    public static let buttonRadius: CGFloat = 16
     public static let screenPadding: CGFloat = 20
 }

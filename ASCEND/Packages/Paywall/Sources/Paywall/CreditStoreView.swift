@@ -166,7 +166,7 @@ public struct CreditStoreView: View {
                 // Details
                 VStack(alignment: .leading, spacing: 4) {
                     HStack(spacing: 6) {
-                        Text(pack.displayPrice)
+                        Text(liveCreditPrice(for: pack))
                             .font(DSFont.cardTitle)
                             .foregroundStyle(Color.ds_textPrimary)
 
@@ -181,7 +181,7 @@ public struct CreditStoreView: View {
                         }
                     }
 
-                    Text(pack.pricePerScan)
+                    Text(livePerScanPrice(for: pack))
                         .font(DSFont.micro)
                         .foregroundStyle(Color.ds_textSecondary)
                 }
@@ -227,7 +227,7 @@ public struct CreditStoreView: View {
                     ProgressView()
                         .tint(Color.ds_navy)
                 } else {
-                    Text("Get \(selectedPack.creditCount) Scans — \(selectedPack.displayPrice)")
+                    Text("Get \(selectedPack.creditCount) Scans — \(liveCreditPrice(for: selectedPack))")
                         .font(DSFont.bodyBold)
                         .foregroundStyle(Color.ds_navy)
                 }
@@ -265,6 +265,24 @@ public struct CreditStoreView: View {
 
             Spacer()
         }
+    }
+
+    // MARK: - Live Prices
+
+    private func liveCreditPrice(for pack: CreditPack) -> String {
+        if let product = CreditStore.shared.product(for: pack) {
+            return product.displayPrice
+        }
+        return pack.displayPrice
+    }
+
+    private func livePerScanPrice(for pack: CreditPack) -> String {
+        if let product = CreditStore.shared.product(for: pack) {
+            let perScan = product.price / Decimal(pack.creditCount)
+            let formatted = perScan.formatted(.currency(code: product.priceFormatStyle.currencyCode ?? "USD"))
+            return "\(formatted)/scan"
+        }
+        return pack.pricePerScan
     }
 
     // MARK: - Purchase Logic

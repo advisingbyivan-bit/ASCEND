@@ -6,7 +6,7 @@ struct WeightCheckInSheet: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
     @State private var weightKg: Double = 75
-    @State private var useLbs: Bool = false
+    @State private var useLbs: Bool = true
 
     let onConfirm: () -> Void
     let onSkip: () -> Void
@@ -61,6 +61,7 @@ struct WeightCheckInSheet: View {
 
             Button {
                 useLbs.toggle()
+                UserDefaults.standard.set(useLbs, forKey: "ascend_weight_use_lbs")
             } label: {
                 Text("Switch to \(useLbs ? "kg" : "lbs")")
                     .font(DSFont.caption)
@@ -70,8 +71,9 @@ struct WeightCheckInSheet: View {
             Button {
                 DSHaptic.success()
                 appState.updateWeight(weightKg)
-                dismiss()
+                UserDefaults.standard.set(useLbs, forKey: "ascend_weight_use_lbs")
                 onConfirm()
+                dismiss()
             } label: {
                 Text("Confirm")
                     .font(DSFont.bodyBold)
@@ -95,8 +97,12 @@ struct WeightCheckInSheet: View {
             Spacer().frame(height: DSSpacing.xs)
         }
         .padding(.horizontal, DSSpacing.screenPadding)
-        .background(Color.ds_navy.ignoresSafeArea())
+        .background { DSAnimatedBackground() }
         .onAppear {
+            // Load saved unit preference (defaults to lbs)
+            if UserDefaults.standard.object(forKey: "ascend_weight_use_lbs") != nil {
+                useLbs = UserDefaults.standard.bool(forKey: "ascend_weight_use_lbs")
+            }
             if let profile = try? DataStore.shared.fetchProfile() {
                 weightKg = profile.weightKg
             }

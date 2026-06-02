@@ -15,7 +15,7 @@ struct Cal18_MonthlyFallbackScreen: View {
 
     private let features: [(icon: String, title: String, subtitle: String)] = [
         ("viewfinder", "AI body scanning", "Track your physique with just a photo"),
-        ("waveform.path.ecg", "IRIS diagnostics", "Get AI-powered insights on every scan"),
+        ("waveform.path.ecg", "IRIS analysis", "Get AI-powered insights on every scan"),
         ("chart.line.uptrend.xyaxis", "Track your progress", "Stay on track with personalized insights"),
     ]
 

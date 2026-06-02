@@ -14,6 +14,17 @@ public final class StreakManager {
     public private(set) var totalDiamonds: Int {
         didSet { UserDefaults.standard.set(totalDiamonds, forKey: "ascend_diamonds") }
     }
+
+    /// Last date the user did ANY engagement (scan, workout, weight check-in).
+    public private(set) var lastEngagementDate: Date? {
+        didSet {
+            if let date = lastEngagementDate {
+                UserDefaults.standard.set(date.timeIntervalSince1970, forKey: "ascend_last_engagement")
+            }
+        }
+    }
+
+    /// Legacy: last scan date. Still tracked for scan-specific features.
     public private(set) var lastScanDate: Date? {
         didSet {
             if let date = lastScanDate {
@@ -22,23 +33,48 @@ public final class StreakManager {
         }
     }
 
+    /// Whether the user has engaged today (scan, workout, etc.)
+    public var hasEngagedToday: Bool {
+        guard let last = lastEngagementDate else { return false }
+        return Calendar.current.isDateInToday(last)
+    }
+
     private init() {
         currentStreak = UserDefaults.standard.integer(forKey: "ascend_streak")
         longestStreak = UserDefaults.standard.integer(forKey: "ascend_longest_streak")
         totalDiamonds = UserDefaults.standard.integer(forKey: "ascend_diamonds")
-        let ts = UserDefaults.standard.double(forKey: "ascend_last_scan")
-        lastScanDate = ts > 0 ? Date(timeIntervalSince1970: ts) : nil
+
+        // Load last scan date
+        let scanTS = UserDefaults.standard.double(forKey: "ascend_last_scan")
+        lastScanDate = scanTS > 0 ? Date(timeIntervalSince1970: scanTS) : nil
+
+        // Load last engagement date — migrate from scan date if needed
+        let engTS = UserDefaults.standard.double(forKey: "ascend_last_engagement")
+        if engTS > 0 {
+            lastEngagementDate = Date(timeIntervalSince1970: engTS)
+        } else if let scanDate = lastScanDate {
+            // First launch with engagement tracking — migrate from scan history
+            lastEngagementDate = scanDate
+            UserDefaults.standard.set(scanDate.timeIntervalSince1970, forKey: "ascend_last_engagement")
+        } else {
+            lastEngagementDate = nil
+        }
     }
 
-    public func recordScan() -> ScanReward {
+    // MARK: - Engagement (any daily activity)
+
+    /// Record any engagement activity (workout, weight check-in, etc.)
+    /// Updates the streak based on consecutive daily engagement.
+    /// Returns a ScanReward (diamonds/milestones still fire from engagement streaks).
+    public func recordEngagement() -> ScanReward {
         let today = Calendar.current.startOfDay(for: Date())
         let wasConsecutive: Bool
 
-        if let last = lastScanDate {
+        if let last = lastEngagementDate {
             let lastDay = Calendar.current.startOfDay(for: last)
             let diff = Calendar.current.dateComponents([.day], from: lastDay, to: today).day ?? 0
             if diff == 0 {
-                return .alreadyScanned
+                return .alreadyEngaged
             } else if diff == 1 {
                 wasConsecutive = true
             } else {
@@ -48,7 +84,7 @@ public final class StreakManager {
             wasConsecutive = false
         }
 
-        lastScanDate = Date()
+        lastEngagementDate = Date()
 
         if wasConsecutive {
             currentStreak += 1
@@ -61,12 +97,20 @@ public final class StreakManager {
         }
 
         let milestone = DiamondMilestone.check(streak: currentStreak)
-        if let milestone {
+        if milestone != nil {
             totalDiamonds += 1
         }
 
         let reward = RewardDispatcher.evaluate(streak: currentStreak, milestone: milestone)
         return reward
+    }
+
+    // MARK: - Scan (also records engagement)
+
+    /// Record a scan — updates both scan date and engagement streak.
+    public func recordScan() -> ScanReward {
+        lastScanDate = Date()
+        return recordEngagement()
     }
 
     public var streakTier: StreakTier {
@@ -75,10 +119,16 @@ public final class StreakManager {
 }
 
 public enum ScanReward: Equatable {
-    case alreadyScanned
+    case alreadyEngaged    // Already checked in today
+    case alreadyScanned    // Legacy alias
     case standard
     case bonus
     case mega(DiamondMilestone)
+
+    /// Backward compatibility — treat both "already" cases the same
+    public var isAlready: Bool {
+        self == .alreadyEngaged || self == .alreadyScanned
+    }
 }
 
 public enum StreakTier {

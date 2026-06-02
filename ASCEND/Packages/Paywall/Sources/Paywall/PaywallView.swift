@@ -5,6 +5,7 @@ import IRIS
 public struct PaywallView: View {
     @State private var selectedPlan: SubscriptionManager.SubscriptionPlan = .yearly
     @State private var isPurchasing = false
+    @State private var isRestoring = false
     let onDismiss: () -> Void
     var onTermsTap: (() -> Void)?
     var onPrivacyTap: (() -> Void)?
@@ -54,7 +55,7 @@ public struct PaywallView: View {
                     // Features
                     VStack(alignment: .leading, spacing: DSSpacing.sm) {
                         featureRow("viewfinder", "Weekly body scans + bonus credits")
-                        featureRow("eye.fill", "Full IRIS AI diagnostics")
+                        featureRow("eye.fill", "Full IRIS AI analysis")
                         featureRow("chart.line.uptrend.xyaxis", "Week-by-week progress tracking")
                         featureRow("person.3.fill", "Leaderboard & community access")
                         featureRow("diamond.fill", "Diamond milestones & badges")
@@ -77,21 +78,53 @@ public struct PaywallView: View {
                     ) {
                         Task {
                             isPurchasing = true
-                            let _ = await SubscriptionManager.shared.purchase(plan: selectedPlan)
+                            let success = await SubscriptionManager.shared.purchase(plan: selectedPlan)
                             isPurchasing = false
-                            onDismiss()
+                            if success {
+                                onDismiss()
+                            }
+                            // If failed, paywall stays open so user can retry
                         }
                     }
+                    .disabled(isPurchasing || isRestoring)
                     .padding(.horizontal, DSSpacing.screenPadding)
 
+                    // Error feedback
+                    if let error = SubscriptionManager.shared.purchaseError {
+                        Text(error)
+                            .font(DSFont.micro)
+                            .foregroundStyle(Color.red.opacity(0.9))
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, DSSpacing.screenPadding)
+                    }
+
                     // Restore
-                    Button("Restore Purchases") {
+                    Button {
                         Task {
-                            let _ = await SubscriptionManager.shared.restorePurchases()
+                            isRestoring = true
+                            let success = await SubscriptionManager.shared.restorePurchases()
+                            isRestoring = false
+                            if success {
+                                onDismiss()
+                            }
+                        }
+                    } label: {
+                        if isRestoring {
+                            HStack(spacing: 6) {
+                                ProgressView()
+                                    .tint(Color.ds_cyan)
+                                    .scaleEffect(0.7)
+                                Text("Restoring...")
+                                    .font(DSFont.captionBold)
+                                    .foregroundStyle(Color.ds_cyan)
+                            }
+                        } else {
+                            Text("Restore Purchases")
+                                .font(DSFont.captionBold)
+                                .foregroundStyle(Color.ds_cyan)
                         }
                     }
-                    .font(DSFont.captionBold)
-                    .foregroundStyle(Color.ds_cyan)
+                    .disabled(isRestoring || isPurchasing)
 
                     // Disclosures
                     VStack(spacing: DSSpacing.xs) {
@@ -156,22 +189,49 @@ public struct PaywallView: View {
                                 .clipShape(Capsule())
                         }
                     }
-                    Text(plan == .yearly ? "Save 75% — just $2.50/mo" : "$119.88/year")
+                    Text(planSubtitle(for: plan))
                         .font(DSFont.micro)
                         .foregroundStyle(Color.ds_textSecondary)
                 }
                 Spacer()
-                Text(plan.price)
+                Text(livePrice(for: plan))
                     .font(DSFont.captionBold)
                     .foregroundStyle(isSelected ? Color.ds_cyan : Color.ds_textSecondary)
             }
             .padding(DSSpacing.md)
-            .background(isSelected ? Color.ds_cyan.opacity(0.1) : Color.ds_charcoal)
-            .clipShape(RoundedRectangle(cornerRadius: DSSpacing.cardRadius))
+            .dsGlass(tint: isSelected ? .ds_cyan : .clear, tintOpacity: isSelected ? 0.12 : 0)
             .overlay(
                 RoundedRectangle(cornerRadius: DSSpacing.cardRadius)
-                    .stroke(isSelected ? Color.ds_cyan : Color.ds_cardBorder, lineWidth: isSelected ? 2 : 1)
+                    .stroke(isSelected ? Color.ds_cyan : Color.clear, lineWidth: isSelected ? 1.5 : 0)
             )
+        }
+    }
+
+    private func livePrice(for plan: SubscriptionManager.SubscriptionPlan) -> String {
+        let product = plan == .yearly
+            ? SubscriptionManager.shared.yearlyProduct
+            : SubscriptionManager.shared.monthlyProduct
+        if let product {
+            return product.displayPrice + (plan == .yearly ? "/year" : "/month")
+        }
+        return plan.price
+    }
+
+    private func planSubtitle(for plan: SubscriptionManager.SubscriptionPlan) -> String {
+        if plan == .yearly {
+            if let product = SubscriptionManager.shared.yearlyProduct {
+                let monthly = product.price / 12
+                let formatted = monthly.formatted(.currency(code: product.priceFormatStyle.currencyCode ?? "USD"))
+                return "Save 75% — just \(formatted)/mo"
+            }
+            return "Save 75% — just $2.50/mo"
+        } else {
+            if let product = SubscriptionManager.shared.monthlyProduct {
+                let yearly = product.price * 12
+                let formatted = yearly.formatted(.currency(code: product.priceFormatStyle.currencyCode ?? "USD"))
+                return "\(formatted)/year"
+            }
+            return "$119.88/year"
         }
     }
 

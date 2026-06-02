@@ -18,16 +18,13 @@ struct ProfileView: View {
     @State private var showExportShare = false
     @State private var showSignOutConfirm = false
     @State private var showCreditStore = false
-    #if DEBUG
-    @State private var showDesignPreview = false
-    @State private var showAPIKeySheet = false
-    @State private var apiKeyInput: String = ""
-    #endif
     @State private var showTerms = false
     @State private var showPrivacy = false
     @State private var showMedicalDisclaimer = false
     @State private var showWeightEditor = false
-    @State private var currentWeightKg: Double = 75
+    @State private var showSprintEditor = false
+    @State private var showNameEditor = false
+    @State private var editedName = ""
     @State private var exportFileURL: URL?
     @State private var exportError: String?
     @State private var isExporting = false
@@ -35,11 +32,12 @@ struct ProfileView: View {
     @State private var profileImage: UIImage? = ProfileImageStore.load()
 
     private let scanDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+    private let timelineOptions = ["4 Weeks", "8 Weeks", "12 Weeks", "24 Weeks", "No Rush"]
 
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.ds_navy.ignoresSafeArea()
+                DSAnimatedBackground()
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: DSSpacing.md) {
@@ -65,7 +63,6 @@ struct ProfileView: View {
             .onAppear {
                 scanDay = appState.scanDay
                 restDay = appState.restDay
-                loadCurrentWeight()
             }
             .alert("Delete Account", isPresented: $showDeleteConfirm) {
                 Button("Cancel", role: .cancel) {}
@@ -113,22 +110,19 @@ struct ProfileView: View {
             .sheet(isPresented: $showMedicalDisclaimer) {
                 MedicalDisclaimerView()
             }
-            #if DEBUG
-            .fullScreenCover(isPresented: $showDesignPreview) {
-                NavigationStack {
-                    DesignSystemPreviewView()
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button("Done") { showDesignPreview = false }
-                                    .foregroundStyle(Color.ds_cyan)
-                            }
-                        }
+            .alert("Edit Name", isPresented: $showNameEditor) {
+                TextField("Your name", text: $editedName)
+                    .autocorrectionDisabled()
+                Button("Save") {
+                    let trimmed = editedName.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        appState.updateDisplayName(trimmed)
+                    }
                 }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Enter your display name.")
             }
-            .sheet(isPresented: $showAPIKeySheet) {
-                apiKeySheet
-            }
-            #endif
         }
     }
 
@@ -213,9 +207,20 @@ struct ProfileView: View {
             }
             .buttonStyle(.plain)
 
-            Text(appState.displayName.isEmpty ? "You" : appState.displayName)
-                .font(DSFont.sectionTitle)
-                .foregroundStyle(Color.ds_textPrimary)
+            Button {
+                editedName = appState.displayName
+                showNameEditor = true
+            } label: {
+                HStack(spacing: 6) {
+                    Text(appState.displayName.isEmpty ? "You" : appState.displayName)
+                        .font(DSFont.sectionTitle)
+                        .foregroundStyle(Color.ds_textPrimary)
+                    Image(systemName: "pencil")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color.ds_cyan.opacity(0.6))
+                }
+            }
+            .buttonStyle(.plain)
 
             Text(memberSinceText)
                 .font(DSFont.caption)
@@ -241,10 +246,14 @@ struct ProfileView: View {
         }
     }
 
+    private static let relativeDateFormatter: RelativeDateTimeFormatter = {
+        let f = RelativeDateTimeFormatter()
+        f.unitsStyle = .full
+        return f
+    }()
+
     private var memberSinceText: String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        return "Joined \(formatter.localizedString(for: appState.memberSince, relativeTo: Date()))"
+        "Joined \(Self.relativeDateFormatter.localizedString(for: appState.memberSince, relativeTo: Date()))"
     }
 
     private func profileStat(value: String, label: String) -> some View {
@@ -260,7 +269,7 @@ struct ProfileView: View {
 
     private var dividerLine: some View {
         Rectangle()
-            .fill(Color.ds_charcoal)
+            .fill(Color.white.opacity(0.1))
             .frame(width: 1, height: 30)
     }
 
@@ -286,7 +295,7 @@ struct ProfileView: View {
                     showCreditStore = true
                 } label: {
                     HStack(spacing: 4) {
-                        Text(appState.scanCreditsDisplay)
+                        Text("\(ScanCreditManager.shared.availableScans)")
                             .font(DSFont.captionBold)
                             .foregroundStyle(Color.ds_cyan)
                         Image(systemName: "plus.circle.fill")
@@ -315,10 +324,14 @@ struct ProfileView: View {
         return "--"
     }
 
-    private var memberDateShort: String {
+    private static let shortDateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "MMM yyyy"
-        return f.string(from: appState.memberSince)
+        return f
+    }()
+
+    private var memberDateShort: String {
+        Self.shortDateFormatter.string(from: appState.memberSince)
     }
 
     // MARK: - Preferences Section
@@ -341,7 +354,7 @@ struct ProfileView: View {
                 .tint(Color.ds_cyan)
             }
 
-            Divider().background(Color.ds_charcoal)
+            Divider().background(Color.white.opacity(0.08))
 
             HStack {
                 Image(systemName: "bed.double.fill")
@@ -357,7 +370,7 @@ struct ProfileView: View {
                 .tint(Color.ds_cyan)
             }
 
-            Divider().background(Color.ds_charcoal)
+            Divider().background(Color.white.opacity(0.08))
 
             HStack {
                 Image(systemName: "bell.fill")
@@ -372,7 +385,7 @@ struct ProfileView: View {
                     .tint(Color.ds_cyan)
             }
 
-            Divider().background(Color.ds_charcoal)
+            Divider().background(Color.white.opacity(0.08))
 
             Button { showWeightEditor = true } label: {
                 HStack(spacing: DSSpacing.sm) {
@@ -383,7 +396,27 @@ struct ProfileView: View {
                         .font(DSFont.body)
                         .foregroundStyle(Color.ds_textPrimary)
                     Spacer()
-                    Text(String(format: "%.0f kg", currentWeightKg))
+                    Text(weightDisplayString)
+                        .font(DSFont.captionBold)
+                        .foregroundStyle(Color.ds_textSecondary)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundStyle(Color.ds_textSecondary)
+                }
+            }
+
+            Divider().background(Color.white.opacity(0.08))
+
+            Button { showSprintEditor = true } label: {
+                HStack(spacing: DSSpacing.sm) {
+                    Image(systemName: "flag.checkered")
+                        .foregroundStyle(Color.ds_purple)
+                        .frame(width: 24)
+                    Text("Sprint")
+                        .font(DSFont.body)
+                        .foregroundStyle(Color.ds_textPrimary)
+                    Spacer()
+                    Text(appState.timeline)
                         .font(DSFont.captionBold)
                         .foregroundStyle(Color.ds_textSecondary)
                     Image(systemName: "chevron.right")
@@ -399,18 +432,28 @@ struct ProfileView: View {
         }
         .sheet(isPresented: $showWeightEditor) {
             WeightCheckInSheet(
-                onConfirm: { loadCurrentWeight() },
+                onConfirm: {},
                 onSkip: {}
             )
             .environment(appState)
             .presentationDetents([.medium])
             .presentationDragIndicator(.visible)
         }
+        .fullScreenCover(isPresented: $showSprintEditor) {
+            SprintChangeView()
+                .environment(appState)
+        }
     }
 
-    private func loadCurrentWeight() {
-        if let profile = try? DataStore.shared.fetchProfile() {
-            currentWeightKg = profile.weightKg
+    private var weightDisplayString: String {
+        let useLbs = UserDefaults.standard.object(forKey: "ascend_weight_use_lbs") == nil
+            ? true  // Default to lbs for US users
+            : UserDefaults.standard.bool(forKey: "ascend_weight_use_lbs")
+        if useLbs {
+            let lbs = Int(round(appState.profileWeightKg * 2.20462))
+            return "\(lbs) lbs"
+        } else {
+            return String(format: "%.0f kg", appState.profileWeightKg)
         }
     }
 
@@ -448,7 +491,7 @@ struct ProfileView: View {
                 }
             }
 
-            Divider().background(Color.ds_charcoal)
+            Divider().background(Color.white.opacity(0.08))
 
             accountRow(icon: "arrow.clockwise", label: "Restore Purchases", color: Color.ds_cyan) {
                 Task {
@@ -470,13 +513,13 @@ struct ProfileView: View {
                 exportUserData()
             }
 
-            Divider().background(Color.ds_charcoal)
+            Divider().background(Color.white.opacity(0.08))
 
             accountRow(icon: "rectangle.portrait.and.arrow.right.fill", label: "Sign Out", color: Color.ds_textSecondary) {
                 showSignOutConfirm = true
             }
 
-            Divider().background(Color.ds_charcoal)
+            Divider().background(Color.white.opacity(0.08))
 
             accountRow(icon: "trash.fill", label: "Delete Account", color: Color.ds_red) {
                 showDeleteConfirm = true
@@ -507,10 +550,6 @@ struct ProfileView: View {
 
     private var appInfoSection: some View {
         VStack(spacing: DSSpacing.sm) {
-            #if DEBUG
-            debugSection
-            #endif
-
             IRISSphereView(state: .idle, size: .badge)
 
             Text("ASCEND")
@@ -521,11 +560,6 @@ struct ProfileView: View {
             Text("Version \(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0")")
                 .font(DSFont.micro)
                 .foregroundStyle(Color.ds_textSecondary.opacity(0.6))
-                #if DEBUG
-                .onTapGesture(count: 5) {
-                    showDesignPreview = true
-                }
-                #endif
 
             HStack(spacing: DSSpacing.lg) {
                 linkButton("Privacy Policy")
@@ -548,127 +582,7 @@ struct ProfileView: View {
         .padding(.horizontal, DSSpacing.screenPadding)
     }
 
-    // MARK: - Debug Section (DEBUG only)
-    #if DEBUG
-    private var debugSection: some View {
-        VStack(spacing: DSSpacing.xs) {
-            sectionHeader("DEVELOPER")
-
-            // API Key status
-            HStack(spacing: DSSpacing.sm) {
-                Image(systemName: "key.fill")
-                    .foregroundStyle(APIKeyManager.isConfigured ? Color.ds_green : Color.ds_red)
-                    .frame(width: 24)
-                Text("Claude API Key")
-                    .font(DSFont.body)
-                    .foregroundStyle(Color.ds_textPrimary)
-                Spacer()
-                Button {
-                    apiKeyInput = APIKeyManager.currentKey() ?? ""
-                    showAPIKeySheet = true
-                } label: {
-                    Text(APIKeyManager.isConfigured ? "Configured" : "Set Key")
-                        .font(DSFont.captionBold)
-                        .foregroundStyle(APIKeyManager.isConfigured ? Color.ds_green : Color.ds_cyan)
-                }
-                .buttonStyle(.plain)
-            }
-
-            Divider().background(Color.ds_charcoal)
-
-            // Add debug credits
-            HStack(spacing: DSSpacing.sm) {
-                Image(systemName: "plus.circle.fill")
-                    .foregroundStyle(Color.ds_cyan)
-                    .frame(width: 24)
-                Text("Add 5 Debug Credits")
-                    .font(DSFont.body)
-                    .foregroundStyle(Color.ds_textPrimary)
-                Spacer()
-                Button {
-                    ScanCreditManager.shared.addCredits(5, source: .other)
-                    DSHaptic.success()
-                } label: {
-                    Text("ADD")
-                        .font(DSFont.captionBold)
-                        .foregroundStyle(Color.ds_cyan)
-                }
-                .buttonStyle(.plain)
-            }
-        }
-        .dsCard()
-        .padding(.horizontal, DSSpacing.screenPadding)
-    }
-
-    private var apiKeySheet: some View {
-        NavigationStack {
-            ZStack {
-                Color.ds_navy.ignoresSafeArea()
-
-                VStack(spacing: DSSpacing.md) {
-                    VStack(alignment: .leading, spacing: DSSpacing.xs) {
-                        Text("Anthropic API Key")
-                            .font(DSFont.cardTitle)
-                            .foregroundStyle(Color.ds_textPrimary)
-
-                        Text("Enter your API key to enable real AI body analysis. Get one at console.anthropic.com")
-                            .font(DSFont.caption)
-                            .foregroundStyle(Color.ds_textSecondary)
-
-                        TextField("sk-ant-...", text: $apiKeyInput)
-                            .textFieldStyle(.roundedBorder)
-                            .font(.system(size: 13, design: .monospaced))
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .padding(.top, DSSpacing.xs)
-                    }
-
-                    HStack(spacing: DSSpacing.sm) {
-                        Button("Remove") {
-                            APIKeyManager.removeKey()
-                            apiKeyInput = ""
-                            showAPIKeySheet = false
-                        }
-                        .font(DSFont.captionBold)
-                        .foregroundStyle(Color.ds_red)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(Color.ds_red.opacity(0.15))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                        Button("Save") {
-                            APIKeyManager.setKey(apiKeyInput)
-                            showAPIKeySheet = false
-                        }
-                        .font(DSFont.captionBold)
-                        .foregroundStyle(Color.ds_navy)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(Color.ds_cyan)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-
-                    Spacer()
-                }
-                .padding(DSSpacing.screenPadding)
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text("API KEY")
-                        .font(DSFont.captionBold)
-                        .foregroundStyle(Color.ds_cyan)
-                        .tracking(2)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { showAPIKeySheet = false }
-                        .foregroundStyle(Color.ds_cyan)
-                }
-            }
-        }
-        .presentationDetents([.medium])
-    }
-    #endif
+    // Debug section removed for production
 
     private func linkButton(_ title: String) -> some View {
         Button(title) {

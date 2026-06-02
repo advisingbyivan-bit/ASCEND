@@ -11,6 +11,7 @@ public struct ScanFlowView: View {
     @State private var capturedPhotos: [UIImage] = []
     @State private var scanComplete = false
     @State private var showFlash = false
+    @State private var isDismissing = false
 
     // Angle tracking
     @State private var currentAngle: Int = 0       // 0 front · 1 side · 2 back
@@ -32,6 +33,9 @@ public struct ScanFlowView: View {
     @State private var reviewPhoto: UIImage?
     @State private var showReview = false
     @State private var isCapturePending = false
+
+    // Skin visibility notice
+    @State private var showSkinNotice = true
 
     public var onComplete: (([UIImage]) -> Void)?
     public var onDismiss: (() -> Void)?
@@ -88,8 +92,15 @@ public struct ScanFlowView: View {
                     .transition(.opacity)
             }
 
-            // 10. Close button — always on top and tappable
-            if !showReview {
+            // 10. Skin visibility notice — shows briefly at scan start
+            if showSkinNotice {
+                skinVisibilityNotice
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                    .allowsHitTesting(true)
+            }
+
+            // 11. Close button — always on top and tappable
+            if !showReview && !showSkinNotice {
                 closeButton
             }
         }
@@ -98,12 +109,16 @@ public struct ScanFlowView: View {
             startCamera()
             setupCallbacks()
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                withAnimation(.easeOut(duration: 0.6)) { showHUD = true }
-            }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                withAnimation(.easeOut(duration: 0.8)) { showMesh = true }
-                DSHaptic.screenEntry()
+            // Show skin notice for 3 seconds, then reveal HUD
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                withAnimation(.easeOut(duration: 0.5)) { showSkinNotice = false }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    withAnimation(.easeOut(duration: 0.6)) { showHUD = true }
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    withAnimation(.easeOut(duration: 0.8)) { showMesh = true }
+                    DSHaptic.screenEntry()
+                }
             }
         }
         .onDisappear {
@@ -167,12 +182,14 @@ public struct ScanFlowView: View {
                 .ignoresSafeArea()
 
             #if !targetEnvironment(simulator)
-            GeometryReader { geo in
-                CameraPreview(session: camera.session)
-                    .ignoresSafeArea()
-                    .onAppear {
-                        camera.setViewAspect(geo.size.width / geo.size.height)
-                    }
+            if !isDismissing {
+                GeometryReader { geo in
+                    CameraPreview(session: camera.session)
+                        .ignoresSafeArea()
+                        .onAppear {
+                            camera.setViewAspect(geo.size.width / geo.size.height)
+                        }
+                }
             }
             #endif
         }
@@ -200,9 +217,15 @@ public struct ScanFlowView: View {
         VStack {
             HStack {
                 Button {
+                    guard !isDismissing else { return }
+                    isDismissing = true
                     DSHaptic.light()
+                    // Hide camera preview immediately, then stop session and dismiss
                     camera.stop()
-                    onDismiss?()
+                    noBodyTimer?.invalidate()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        onDismiss?()
+                    }
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 14, weight: .semibold))
@@ -216,6 +239,49 @@ public struct ScanFlowView: View {
             .padding(.horizontal, 20)
             .padding(.top, 56)
             Spacer()
+        }
+    }
+
+    // MARK: - Skin Visibility Notice
+
+    private var skinVisibilityNotice: some View {
+        ZStack {
+            Color.black.opacity(0.85)
+                .ignoresSafeArea()
+
+            VStack(spacing: DSSpacing.lg) {
+                Spacer()
+
+                Image(systemName: "figure.stand")
+                    .font(.system(size: 64))
+                    .foregroundStyle(Color.ds_cyan)
+
+                VStack(spacing: DSSpacing.sm) {
+                    Text("Show more skin")
+                        .font(DSFont.screenTitle)
+                        .foregroundStyle(Color.ds_textPrimary)
+
+                    Text("For the most accurate scan, wear as little as possible. IRIS can only assess what it can see — covered areas won't be scored.")
+                        .font(DSFont.body)
+                        .foregroundStyle(Color.ds_textSecondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, DSSpacing.xl)
+                }
+
+                DSPrimaryButton("Got it") {
+                    withAnimation(.easeOut(duration: 0.4)) { showSkinNotice = false }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                        withAnimation(.easeOut(duration: 0.6)) { showHUD = true }
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        withAnimation(.easeOut(duration: 0.8)) { showMesh = true }
+                        DSHaptic.screenEntry()
+                    }
+                }
+                .padding(.horizontal, DSSpacing.screenPadding)
+
+                Spacer()
+            }
         }
     }
 

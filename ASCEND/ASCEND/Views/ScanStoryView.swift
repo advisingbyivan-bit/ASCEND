@@ -83,8 +83,8 @@ struct ScanStoryView: View {
 
                 Spacer()
 
-                // Bottom label
-                VStack(spacing: 6) {
+                // Bottom: angle label + IRIS verdict
+                VStack(spacing: 10) {
                     Text(pages[currentIndex].label)
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(.white)
@@ -94,11 +94,40 @@ struct ScanStoryView: View {
                         .background(.ultraThinMaterial.opacity(0.5))
                         .clipShape(Capsule())
 
+                    // IRIS verdict from this scan
+                    if let message = snapshot.irisMessage, !message.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "eye.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(Color.ds_cyan)
+                                Text("IRIS VERDICT")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(Color.ds_cyan)
+                                    .tracking(1.5)
+                            }
+                            Text(message)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(.white.opacity(0.9))
+                                .lineLimit(3)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(.ultraThinMaterial)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(Color.white.opacity(0.1), lineWidth: 0.5)
+                        )
+                        .padding(.horizontal, 16)
+                    }
+
                     Text("\(currentIndex + 1) of \(pages.count)")
                         .font(.system(size: 11))
                         .foregroundStyle(.white.opacity(0.4))
                 }
-                .padding(.bottom, 60)
+                .padding(.bottom, 40)
             }
         }
         .gesture(

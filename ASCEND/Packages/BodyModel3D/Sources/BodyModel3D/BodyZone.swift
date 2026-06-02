@@ -40,6 +40,7 @@ public enum ZoneStatus: Equatable {
     case moderate
     case strong
     case target
+    case covered
 
     public var color: Color {
         switch self {
@@ -48,6 +49,29 @@ public enum ZoneStatus: Equatable {
         case .moderate: Color(red: 1, green: 193.0/255, blue: 7.0/255) // Yellow
         case .strong: Color(red: 57.0/255, green: 1, blue: 20.0/255)
         case .target: Color(red: 0, green: 217.0/255, blue: 1)
+        case .covered: Color(white: 0.35) // Dim gray — not assessed
+        }
+    }
+
+    public var label: String {
+        switch self {
+        case .base: "Base"
+        case .weak: "Weak"
+        case .moderate: "Moderate"
+        case .strong: "Strong"
+        case .target: "Target"
+        case .covered: "Covered"
+        }
+    }
+
+    public var icon: String {
+        switch self {
+        case .base: "circle"
+        case .weak: "arrow.down.right"
+        case .moderate: "arrow.right"
+        case .strong: "arrow.up.right"
+        case .target: "star.fill"
+        case .covered: "eye.slash"
         }
     }
 }

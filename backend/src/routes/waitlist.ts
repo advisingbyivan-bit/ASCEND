@@ -25,21 +25,36 @@ const DISPOSABLE_DOMAINS = new Set([
   "getairmail.com", "filzmail.com", "owlpic.com", "tempinbox.com",
 ]);
 
+const waitlistRateLimitFallback = new Map<string, { count: number; resetAt: number }>();
+
 async function checkRateLimit(ip: string): Promise<void> {
   let client;
   try {
     client = getRedisClient();
-  } catch {
-    // Redis unavailable — fail open (don't block legit users)
-    return;
-  }
-  const key = `waitlist:rl:${ip}`;
-  const current = await client.incr(key);
-  if (current === 1) {
-    await client.expire(key, RATE_LIMIT_WINDOW);
-  }
-  if (current > RATE_LIMIT_MAX) {
-    throw Errors.badRequest("Too many requests. Please try again later.");
+    const key = `waitlist:rl:${ip}`;
+    const current = await client.incr(key);
+    if (current === 1) {
+      await client.expire(key, RATE_LIMIT_WINDOW);
+    }
+    if (current > RATE_LIMIT_MAX) {
+      throw Errors.badRequest("Too many requests. Please try again later.");
+    }
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    // Redis unavailable — fall back to in-memory rate limiting
+    const now = Date.now();
+    const entry = waitlistRateLimitFallback.get(ip);
+    if (entry && entry.resetAt > now) {
+      entry.count++;
+      if (entry.count > RATE_LIMIT_MAX) {
+        throw Errors.badRequest("Too many requests. Please try again later.");
+      }
+    } else {
+      waitlistRateLimitFallback.set(ip, {
+        count: 1,
+        resetAt: now + RATE_LIMIT_WINDOW * 1000,
+      });
+    }
   }
 }
 
@@ -104,13 +119,21 @@ router.post(
 
 /**
  * GET /waitlist
- * Protected — returns all waitlist signups (for Ivan to export).
+ * Admin-only — returns all waitlist signups (for Ivan to export).
+ * Set ADMIN_USER_ID env var to your user ID to access this endpoint.
  */
+const ADMIN_USER_ID = process.env.ADMIN_USER_ID || "";
+
 router.get(
   "/",
   requireAuth,
   async (req: Request, res: Response, next: NextFunction) => {
     try {
+      // Only the admin user can list waitlist emails
+      if (!ADMIN_USER_ID || req.userId !== ADMIN_USER_ID) {
+        throw Errors.forbidden("Admin access required");
+      }
+
       const { rows } = await query(
         "SELECT email, source, created_at FROM waitlist ORDER BY created_at DESC"
       );

@@ -18,6 +18,8 @@ public final class AppState {
     var totalDiamonds: Int { StreakManager.shared.totalDiamonds }
     var streakTier: StreakTier { StreakManager.shared.streakTier }
     var lastScanDate: Date? { StreakManager.shared.lastScanDate }
+    var lastEngagementDate: Date? { StreakManager.shared.lastEngagementDate }
+    var hasEngagedToday: Bool { StreakManager.shared.hasEngagedToday }
 
     // MARK: - Profile
     var displayName: String = ""
@@ -26,6 +28,10 @@ public final class AppState {
     var scanDay: String = "Sunday"
     var restDay: String = "Wednesday"
     var notificationHour: Int = 8
+    var profileWeightKg: Double = 75
+    var profileHeightCm: Int = 175
+    var profileAge: Int = 25
+    var timeline: String = "12 Weeks"
 
     // MARK: - Scan History
     var totalScans: Int = 0
@@ -33,6 +39,10 @@ public final class AppState {
     var weeklyScans: Int = 0
     /// Weekday indices (1=Sun, 2=Mon, …, 7=Sat) that had scans this week
     var scanWeekdays: Set<Int> = []
+    /// Weekday indices that had workouts this week
+    var workoutWeekdays: Set<Int> = []
+    /// Combined engagement weekdays (scans + workouts + weight check-ins)
+    var engagementWeekdays: Set<Int> = []
     /// All scan records for progress photo history
     var scanHistory: [ScanSnapshot] = []
 
@@ -70,6 +80,13 @@ public final class AppState {
         return max(1, (days / 7) + 1)
     }
 
+    /// Total weeks in the user's sprint, parsed from timeline string (e.g. "12 Weeks" → 12).
+    var sprintWeeks: Int {
+        if timeline == "No Rush" { return weekNumber } // Open-ended
+        let number = timeline.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+        return Int(number) ?? 12
+    }
+
     // MARK: - Init
 
     init() {
@@ -86,14 +103,23 @@ public final class AppState {
             guard let self else { return }
             self.loadProfile()
             self.loadScanData()
+            self.loadWorkoutData()
             self.checkStreakDanger()
 
             // Check weekly free credit for subscribers
             let isSubscriber = SubscriptionManager.shared.isPremium
             ScanCreditManager.shared.checkWeeklyFreeCredit(isSubscriber: isSubscriber)
 
+            // Note: Don't cancel re-engagement drip here — it gets cancelled
+            // automatically when the user subscribes (onSubscriptionActivated)
+            // or completes a scan (completeScan). Cancelling here would kill
+            // freshly scheduled drips for users with stale sandbox subscriptions.
+
             // Check milestone credit rewards
             ScanCreditManager.shared.checkMilestoneRewards(currentStreak: self.currentStreak)
+
+            self.refreshLiveActivity()
+            self.refreshWidgetData()
         }
     }
 
@@ -110,6 +136,10 @@ public final class AppState {
                 scanDay = profile.scanDay
                 restDay = profile.restDay
                 notificationHour = profile.notificationHour
+                profileWeightKg = profile.weightKg
+                profileHeightCm = profile.heightCm
+                profileAge = profile.age
+                timeline = profile.timeline
             }
         } catch {
             // Use defaults
@@ -126,8 +156,9 @@ public final class AppState {
             let thisWeekScans = scans.filter { $0.date >= startOfWeek }
             weeklyScans = thisWeekScans.count
             scanWeekdays = Set(thisWeekScans.map { Calendar.current.component(.weekday, from: $0.date) })
+            engagementWeekdays = engagementWeekdays.union(scanWeekdays)
 
-            // Load latest diagnosis
+            // Load latest diagnosis (lightweight — no image data needed)
             if let latest = scans.first, let _ = latest.zoneData {
                 latestDiagnosis = decodeDiagnosis(from: latest)
             } else {
@@ -135,15 +166,18 @@ public final class AppState {
                 latestDiagnosis = DiagnosisResult.baseline
             }
 
-            // Build scan history for progress photos
+            // Build scan history WITHOUT images — they load lazily when Progress tab opens.
+            // This avoids decoding every JPEG on launch (was the main startup bottleneck).
             scanHistory = scans.map { record in
                 ScanSnapshot(
                     id: record.id,
                     date: record.date,
                     score: record.overallScore,
-                    frontImage: record.frontImageData.flatMap { UIImage(data: $0) },
-                    sideImage: record.sideImageData.flatMap { UIImage(data: $0) },
-                    backImage: record.backImageData.flatMap { UIImage(data: $0) }
+                    frontImage: nil,
+                    sideImage: nil,
+                    backImage: nil,
+                    irisMessage: record.irisMessage.isEmpty ? nil : record.irisMessage,
+                    zoneData: Self.decodeZoneData(record.zoneData)
                 )
             }
         } catch {
@@ -153,6 +187,42 @@ public final class AppState {
             scanHistory = []
         }
     }
+
+    func loadWorkoutData() {
+        do {
+            workoutWeekdays = try DataStore.shared.workoutWeekdays()
+            engagementWeekdays = scanWeekdays.union(workoutWeekdays)
+        } catch {
+            workoutWeekdays = []
+            engagementWeekdays = scanWeekdays
+        }
+    }
+
+    /// Load full image data for scan history. Call from Progress tab onAppear.
+    func loadScanImages() {
+        guard !_imagesLoaded else { return }
+        _imagesLoaded = true
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            do {
+                let scans = try DataStore.shared.fetchScans()
+                self.scanHistory = scans.map { record in
+                    ScanSnapshot(
+                        id: record.id,
+                        date: record.date,
+                        score: record.overallScore,
+                        frontImage: record.frontImageData.flatMap { UIImage(data: $0) },
+                        sideImage: record.sideImageData.flatMap { UIImage(data: $0) },
+                        backImage: record.backImageData.flatMap { UIImage(data: $0) },
+                        irisMessage: record.irisMessage.isEmpty ? nil : record.irisMessage,
+                        zoneData: Self.decodeZoneData(record.zoneData)
+                    )
+                }
+            } catch {}
+        }
+    }
+
+    private var _imagesLoaded = false
 
     // MARK: - Actions
 
@@ -199,7 +269,9 @@ public final class AppState {
         totalScans += 1
         weeklyScans += 1
         latestDiagnosis = diagnosis
-        scanWeekdays.insert(Calendar.current.component(.weekday, from: Date()))
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        scanWeekdays.insert(todayWeekday)
+        engagementWeekdays.insert(todayWeekday)
 
         // Add to scan history immediately
         let snapshot = ScanSnapshot(
@@ -208,7 +280,9 @@ public final class AppState {
             score: diagnosis.overallScore,
             frontImage: photos.count >= 1 ? photos[0] : nil,
             sideImage: photos.count >= 2 ? photos[1] : nil,
-            backImage: photos.count >= 3 ? photos[2] : nil
+            backImage: photos.count >= 3 ? photos[2] : nil,
+            irisMessage: diagnosis.irisMessage,
+            zoneData: diagnosis.zones.map { ($0.zone.rawValue, $0.status.label.lowercased(), $0.delta) }
         )
         scanHistory.insert(snapshot, at: 0)
 
@@ -233,11 +307,75 @@ public final class AppState {
             AnalyticsService.shared.track(.reward_bonus)
         case .standard:
             AnalyticsService.shared.track(.streak_continued, "day", currentStreak)
-        case .alreadyScanned:
+        case .alreadyScanned, .alreadyEngaged:
             break
         }
 
+        // Don't fire scan-complete notification here — user is already in the app
+        // looking at results. The "Open ASCEND" text would be confusing.
+        // Badge/diamond notifications handle the celebratory feedback.
+
+        // Cancel engagement notifications — user is actively scanning
+        NotificationScheduler.shared.cancelReEngagementDrip()
+        NotificationScheduler.shared.cancelFirstScanReminders()
+
+        refreshLiveActivity()
+        refreshWidgetData()
+
         // Schedule encouragement notifications based on streak progress
+        scheduleStreakNotifications()
+    }
+
+    // MARK: - Workout Logging
+
+    /// Log a workout — counts as daily engagement for streak.
+    func logWorkout(muscleGroups: [String], notes: String = "") {
+        let entry = WorkoutEntry(
+            muscleGroups: muscleGroups.joined(separator: ","),
+            notes: notes
+        )
+
+        do {
+            try DataStore.shared.saveWorkout(entry)
+        } catch {
+            // Silent fail — engagement still counts for current session
+        }
+
+        // Record engagement (updates streak)
+        let reward = StreakManager.shared.recordEngagement()
+
+        // Check for new milestone credits
+        let newCredits = ScanCreditManager.shared.checkMilestoneRewards(currentStreak: currentStreak)
+        if newCredits > 0 {
+            AnalyticsService.shared.track(.credits_earned, properties: [
+                "amount": newCredits,
+                "source": "milestone",
+                "streak": currentStreak
+            ])
+        }
+
+        // Update local state
+        let today = Calendar.current.component(.weekday, from: Date())
+        workoutWeekdays.insert(today)
+        engagementWeekdays.insert(today)
+
+        // Handle reward (diamonds, etc.)
+        switch reward {
+        case .mega(let milestone):
+            pendingCelebration = milestone
+            showCelebration = true
+            NotificationScheduler.shared.scheduleDiamondCelebration(milestone: milestone.displayName)
+            AnalyticsService.shared.track(.diamond_earned, "milestone", milestone.displayName)
+        case .bonus:
+            AnalyticsService.shared.track(.reward_bonus)
+        case .standard:
+            AnalyticsService.shared.track(.streak_continued, "day", currentStreak)
+        case .alreadyEngaged, .alreadyScanned:
+            break
+        }
+
+        refreshLiveActivity()
+        refreshWidgetData()
         scheduleStreakNotifications()
     }
 
@@ -325,6 +463,7 @@ public final class AppState {
         let restWeekdayInt = weekdayNumber(from: restDay)
         NotificationScheduler.shared.scheduleWeeklyScanReminder(weekday: weekdayInt, hour: notificationHour, minute: 0)
         NotificationScheduler.shared.scheduleMidWeekCheckIn(hour: notificationHour, weekday: restWeekdayInt)
+        NotificationScheduler.shared.scheduleDailyCheckIn(hour: notificationHour)
     }
 
     /// Check if any badges were newly earned and fire unlock notifications.
@@ -348,10 +487,60 @@ public final class AppState {
     }
 
     func updateWeight(_ weightKg: Double) {
+        // Update local state immediately so any view reading appState.profileWeightKg updates
+        profileWeightKg = weightKg
         do {
             try DataStore.shared.updateProfileWeight(weightKg)
-        } catch {}
+        } catch {
+            print("[AppState] Failed to persist weight: \(error)")
+        }
         UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: "ascend_last_weight_update")
+
+        // Weight check-in counts as daily engagement
+        let reward = StreakManager.shared.recordEngagement()
+        let todayWeekday = Calendar.current.component(.weekday, from: Date())
+        engagementWeekdays.insert(todayWeekday)
+
+        if case .mega(let milestone) = reward {
+            pendingCelebration = milestone
+            showCelebration = true
+            NotificationScheduler.shared.scheduleDiamondCelebration(milestone: milestone.displayName)
+        }
+    }
+
+    func updateDisplayName(_ name: String) {
+        displayName = name
+        do {
+            try DataStore.shared.updateProfileField(\.displayName, value: name)
+        } catch {
+            print("[AppState] Failed to persist display name: \(error)")
+        }
+    }
+
+    func updateTimeline(_ newTimeline: String) {
+        timeline = newTimeline
+        do {
+            try DataStore.shared.updateProfileField(\.timeline, value: newTimeline)
+        } catch {
+            print("[AppState] Failed to persist timeline: \(error)")
+        }
+    }
+
+    /// Soft-reset the sprint: moves memberSince to now so the week counter
+    /// resets to Week 1, but keeps all scan history, streak, scores, etc.
+    func softResetSprint() {
+        let now = Date()
+        memberSince = now
+        do {
+            try DataStore.shared.updateProfileField(\.createdAt, value: now)
+        } catch {
+            print("[AppState] Failed to persist sprint reset: \(error)")
+        }
+    }
+
+    /// Called when user subscribes (from any paywall). Cancels re-engagement drip.
+    func onSubscriptionActivated() {
+        NotificationScheduler.shared.cancelReEngagementDrip()
     }
 
     /// Dismiss diamond celebration
@@ -360,15 +549,98 @@ public final class AppState {
         pendingCelebration = nil
     }
 
+    // MARK: - Live Activity
+
+    /// Start or update the Live Activity with current streak data.
+    /// Only starts a Live Activity after the user has completed at least one scan
+    /// so the data shown is always real (never defaults/zeros).
+    func refreshLiveActivity() {
+        guard hasCompletedFirstScan else {
+            // No scan data yet — don't show a Live Activity with empty/default values
+            return
+        }
+
+        let milestone = DiamondMilestone.next(forStreak: currentStreak)
+        let daysUntil = milestone.map { $0.rawValue - currentStreak } ?? 0
+        let score = latestDiagnosis?.overallScore ?? 0
+
+        var weekEngagement = Array(repeating: false, count: 7)
+        for day in engagementWeekdays {
+            let index = day - 1
+            if index >= 0 && index < 7 {
+                weekEngagement[index] = true
+            }
+        }
+
+        if LiveActivityManager.shared.isSupported {
+            if LiveActivityManager.shared.hasActiveActivity {
+                LiveActivityManager.shared.update(
+                    streak: currentStreak,
+                    score: score,
+                    nextMilestone: milestone?.rawValue ?? 7,
+                    daysUntilMilestone: daysUntil,
+                    lastScanDate: lastScanDate,
+                    streakAtRisk: isStreakAtRisk,
+                    weekEngagement: weekEngagement
+                )
+            } else {
+                LiveActivityManager.shared.start(
+                    displayName: displayName,
+                    streak: currentStreak,
+                    score: score,
+                    nextMilestone: milestone?.rawValue ?? 7,
+                    daysUntilMilestone: daysUntil,
+                    lastScanDate: lastScanDate,
+                    weekEngagement: weekEngagement
+                )
+            }
+        }
+    }
+
+    // MARK: - Widget Data
+
+    /// Push current state to home screen widget via App Group UserDefaults.
+    func refreshWidgetData() {
+        let milestone = DiamondMilestone.next(forStreak: currentStreak)
+        let daysUntil = milestone.map { $0.rawValue - currentStreak } ?? 0
+        let score = latestDiagnosis?.overallScore ?? 0
+
+        // Convert engagementWeekdays Set<Int> (1=Sun…7=Sat) to [Bool] array (index 0=Sun…6=Sat)
+        var weekEngagement = Array(repeating: false, count: 7)
+        for day in engagementWeekdays {
+            let index = day - 1  // Convert 1-based to 0-based
+            if index >= 0 && index < 7 {
+                weekEngagement[index] = true
+            }
+        }
+
+        WidgetDataStore.update(
+            streak: currentStreak,
+            score: score,
+            totalScans: totalScans,
+            weekEngagement: weekEngagement,
+            nextMilestone: milestone?.rawValue ?? 7,
+            daysUntilMilestone: daysUntil,
+            streakAtRisk: isStreakAtRisk
+        )
+    }
+
+    private var isStreakAtRisk: Bool {
+        guard currentStreak > 0, let last = lastEngagementDate else { return false }
+        let today = Calendar.current.startOfDay(for: Date())
+        let lastDay = Calendar.current.startOfDay(for: last)
+        return lastDay < today
+    }
+
     /// Check if streak is in danger and schedule notification
     func checkStreakDanger() {
         guard currentStreak > 0 else { return }
-        guard let last = lastScanDate else { return }
+        guard let last = lastEngagementDate else { return }
         let today = Calendar.current.startOfDay(for: Date())
         let lastDay = Calendar.current.startOfDay(for: last)
         let diff = Calendar.current.dateComponents([.day], from: lastDay, to: today).day ?? 0
 
-        // If user hasn't scanned today and has an active streak, schedule danger notification at 8pm
+        // If user hasn't engaged today and has an active streak, schedule danger notification at 8pm
         if diff >= 1 {
             Task {
                 await NotificationScheduler.shared.scheduleSmartReminder(hour: 20)
@@ -389,6 +661,7 @@ public final class AppState {
             "ascend_longest_streak",
             "ascend_diamonds",
             "ascend_last_scan",
+            "ascend_last_engagement",
             "ascend_last_weight_update"
         ]
         for key in keysToRemove {
@@ -402,6 +675,7 @@ public final class AppState {
         ScanCreditManager.shared.reset()
         APIKeyManager.removeKey()
         NotificationScheduler.shared.cancelAll()
+        LiveActivityManager.shared.endAll()
     }
 
     // MARK: - Helpers
@@ -434,6 +708,7 @@ public final class AppState {
         case .moderate: "moderate"
         case .strong: "strong"
         case .target: "target"
+        case .covered: "covered"
         }
     }
 
@@ -444,6 +719,7 @@ public final class AppState {
         case "moderate": .moderate
         case "strong": .strong
         case "target": .target
+        case "covered": .covered
         default: nil
         }
     }
@@ -471,6 +747,8 @@ struct ScanSnapshot: Identifiable {
     let frontImage: UIImage?
     let sideImage: UIImage?
     let backImage: UIImage?
+    let irisMessage: String?
+    let zoneData: [(zone: String, status: String, delta: Double)]?
 
     var formattedDate: String {
         let formatter = DateFormatter()
@@ -485,4 +763,12 @@ private struct ZoneDataItem: Codable {
     let zone: String
     let status: String
     let delta: Double
+}
+
+extension AppState {
+    static func decodeZoneData(_ data: Data?) -> [(zone: String, status: String, delta: Double)]? {
+        guard let data else { return nil }
+        guard let items = try? JSONDecoder().decode([ZoneDataItem].self, from: data) else { return nil }
+        return items.map { ($0.zone, $0.status, $0.delta) }
+    }
 }

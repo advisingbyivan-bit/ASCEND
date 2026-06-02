@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 import DesignSystem
 import IRIS
 import BodyModel3D
@@ -6,10 +7,12 @@ import Networking
 
 public struct DiagnosisRevealView: View {
     @State private var viewModel: DiagnosisRevealViewModel
+    let gender: BodyGender
     let onComplete: (DiagnosisResult) -> Void
 
-    public init(photos: [UIImage], userContext: ClaudeVisionClient.UserContext = ClaudeVisionClient.UserContext(), onComplete: @escaping (DiagnosisResult) -> Void) {
+    public init(photos: [UIImage], gender: BodyGender = .male, userContext: ClaudeVisionClient.UserContext = ClaudeVisionClient.UserContext(), onComplete: @escaping (DiagnosisResult) -> Void) {
         _viewModel = State(initialValue: DiagnosisRevealViewModel(photos: photos, userContext: userContext))
+        self.gender = gender
         self.onComplete = onComplete
     }
 
@@ -76,7 +79,7 @@ public struct DiagnosisRevealView: View {
             VStack(spacing: DSSpacing.sm) {
                 HStack {
                     IRISSphereView(state: viewModel.irisState, size: .notification)
-                    Text("IRIS DIAGNOSIS")
+                    Text("IRIS ANALYSIS")
                         .font(DSFont.captionBold)
                         .foregroundStyle(Color.ds_cyan)
                         .tracking(2)
@@ -99,7 +102,7 @@ public struct DiagnosisRevealView: View {
 
                 if viewModel.showBody {
                     BodyModelView(
-                        gender: .male,
+                        gender: gender,
                         zones: viewModel.revealedZones,
                         interactive: true,
                         size: .full
@@ -107,7 +110,8 @@ public struct DiagnosisRevealView: View {
                     .transition(.scale(scale: 0.7).combined(with: .opacity))
                 }
 
-                if viewModel.showMessage {
+                // IRIS message fades out once done, replaced by zone grid
+                if viewModel.showMessage && !viewModel.showZoneGrid {
                     DSTypewriterText(viewModel.messageText, charDelay: .milliseconds(30)) {
                         viewModel.messageFinished()
                     }
@@ -115,8 +119,12 @@ public struct DiagnosisRevealView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
 
-                zoneListView
-                    .padding(.vertical, DSSpacing.sm)
+                // Zone grid replaces message after typewriter completes
+                if viewModel.showZoneGrid {
+                    zoneGridView
+                        .padding(.horizontal, DSSpacing.screenPadding)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
 
                 // Extra space for CTA button overlay in celebration stage
                 Spacer().frame(height: 80)
@@ -125,26 +133,60 @@ public struct DiagnosisRevealView: View {
         .transition(.opacity)
     }
 
-    private var zoneListView: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: DSSpacing.xs) {
-                ForEach(Array(viewModel.revealedZones.sorted(by: { $0.key.rawValue < $1.key.rawValue })), id: \.key) { zone, status in
-                    VStack(spacing: 4) {
-                        Circle()
-                            .fill(status.color)
-                            .frame(width: 10, height: 10)
-                        Text(zone.displayName)
-                            .font(DSFont.micro)
-                            .foregroundStyle(Color.ds_textSecondary)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 6)
-                    .background(Color.ds_charcoal.opacity(0.6))
-                    .clipShape(Capsule())
-                }
+    private var zoneGridView: some View {
+        let sortedZones: [ZoneDiagnosisItem] = viewModel.diagnosis?.zones ?? []
+
+        return LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: DSSpacing.xs),
+                GridItem(.flexible(), spacing: DSSpacing.xs)
+            ],
+            spacing: DSSpacing.xs
+        ) {
+            ForEach(sortedZones) { item in
+                zoneCard(item)
             }
-            .padding(.horizontal, DSSpacing.screenPadding)
         }
+    }
+
+    private func zoneCard(_ item: ZoneDiagnosisItem) -> some View {
+        HStack(spacing: 10) {
+            // Status color bar
+            RoundedRectangle(cornerRadius: 2)
+                .fill(item.status.color)
+                .frame(width: 4, height: 36)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.zone.displayName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.ds_textPrimary)
+
+                Text(item.status.label)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(item.status.color)
+            }
+
+            Spacer()
+
+            // Delta indicator
+            if item.delta != 0 {
+                HStack(spacing: 2) {
+                    Image(systemName: item.delta > 0 ? "arrow.up" : "arrow.down")
+                        .font(.system(size: 9, weight: .bold))
+                    Text("\(abs(Int(item.delta)))")
+                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                }
+                .foregroundStyle(item.delta > 0 ? Color.ds_green : Color.ds_red)
+            } else {
+                Image(systemName: "minus")
+                    .font(.system(size: 9, weight: .medium))
+                    .foregroundStyle(Color.ds_textSecondary.opacity(0.4))
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.ds_charcoal.opacity(0.7))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
     }
 
     // MARK: - Stage 3: Celebration
@@ -180,6 +222,8 @@ public struct DiagnosisRevealView: View {
                 if viewModel.showCTA {
                     DSPrimaryButton("View Results", icon: "chart.line.uptrend.xyaxis") {
                         if let result = viewModel.diagnosis {
+                            // Request App Store rating after a positive first experience
+                            requestRatingIfAppropriate()
                             onComplete(result)
                         }
                     }
@@ -229,6 +273,24 @@ public struct DiagnosisRevealView: View {
             Spacer()
         }
         .transition(.opacity)
+    }
+
+    // MARK: - App Store Rating
+
+    private func requestRatingIfAppropriate() {
+        let key = "ascend_diagnosis_view_count"
+        let count = UserDefaults.standard.integer(forKey: key) + 1
+        UserDefaults.standard.set(count, forKey: key)
+
+        // Ask on 1st, 5th, and 15th diagnosis — Apple limits to 3/year anyway
+        if count == 1 || count == 5 || count == 15 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                if let scene = UIApplication.shared.connectedScenes
+                    .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                    SKStoreReviewController.requestReview(in: scene)
+                }
+            }
+        }
     }
 }
 

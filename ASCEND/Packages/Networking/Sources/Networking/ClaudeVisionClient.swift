@@ -43,8 +43,10 @@ public final class ClaudeVisionClient: Sendable {
         public let trainingFrequency: String
         /// Goal timeline (e.g. "12 Weeks")
         public let timeline: String
-        /// Previous scan's zone scores for delta comparison
+        /// Previous scan's zone data for delta comparison
         public let previousZones: [(zone: String, status: String, score: Double)]?
+        /// Previous scan's overall score for trend context
+        public let previousOverallScore: Double?
 
         public init(
             heightCm: Int = 0,
@@ -57,7 +59,8 @@ public final class ClaudeVisionClient: Sendable {
             bodyConcerns: String = "",
             trainingFrequency: String = "",
             timeline: String = "",
-            previousZones: [(zone: String, status: String, score: Double)]? = nil
+            previousZones: [(zone: String, status: String, score: Double)]? = nil,
+            previousOverallScore: Double? = nil
         ) {
             self.heightCm = heightCm
             self.weightKg = weightKg
@@ -70,6 +73,7 @@ public final class ClaudeVisionClient: Sendable {
             self.trainingFrequency = trainingFrequency
             self.timeline = timeline
             self.previousZones = previousZones
+            self.previousOverallScore = previousOverallScore
         }
     }
 
@@ -124,15 +128,33 @@ public final class ClaudeVisionClient: Sendable {
         if let prev = context.previousZones, !prev.isEmpty {
             let prevStr = prev.map { "\($0.zone): \($0.status)" }.joined(separator: ", ")
             contextLines.append("Previous scan zones: \(prevStr)")
-            contextLines.append("DELTA should reflect change FROM previous scan (positive = improved, negative = declined). If this is a repeat scan within the same day, deltas should be near zero.")
+            if let prevScore = context.previousOverallScore, prevScore > 0 {
+                contextLines.append("Previous overall score: \(Int(prevScore))/100")
+            }
+            contextLines.append("DELTA should reflect VISIBLE change FROM previous scan based on what you see in the photos compared to the previous status (positive = improved, negative = declined). If this is a repeat scan within the same day, deltas should be near zero.")
         } else {
             contextLines.append("This is the user's first scan. DELTA should be 0 for all zones.")
         }
         let contextBlock = contextLines.joined(separator: "\n")
 
         let prompt = """
-        You are IRIS, a brutally honest AI body diagnostician. Analyze these 3 body photos (front view, side view, back view) \
+        You are IRIS, a brutally honest AI body analyst. Analyze these 3 body photos (front view, side view, back view) \
         and return ONLY valid JSON — no markdown, no explanation, no extra text.
+
+        ===== STEP 1: CLOTHING CHECK (DO THIS FIRST) =====
+        Before analyzing ANY zone, scan all 3 photos and identify which body parts have BARE SKIN visible vs which are COVERED BY CLOTHING.
+
+        Examples:
+        - Wearing pants/sweatpants/jeans → legs = COVERED, glutes = COVERED
+        - Wearing long sleeves/hoodie → arms = COVERED
+        - Wearing a shirt/tank top → chest may be PARTIALLY covered, core/abs may be COVERED
+        - Shirtless + shorts → shoulders, chest, arms, back, core, abs = VISIBLE; legs, glutes = COVERED
+
+        For ANY zone where bare skin is NOT clearly visible: status MUST be "covered", delta MUST be 0.
+        DO NOT guess, infer, or estimate what is under clothing. If you cannot see bare skin on that zone, it is "covered". Period.
+
+        ===== STEP 2: ANALYZE VISIBLE ZONES ONLY =====
+        For zones with bare skin visible, evaluate honestly.
 
         USER CONTEXT:
         \(contextBlock)
@@ -141,31 +163,38 @@ public final class ClaudeVisionClient: Sendable {
         {"zones":[{"zone":"<zone>","status":"<status>","delta":<number>,"note":"<1 sentence>"}],"overallScore":<0-100>,"irisMessage":"<message>"}
 
         ZONES (use these exact names): shoulders, chest, arms, back, core, abs, glutes, legs
-        STATUS values: "strong" (visibly developed, good definition), "moderate" (some development, room to grow), "weak" (underdeveloped, priority area)
-        DELTA: % change since last scan (positive = improved, negative = declined, 0 = no change). Realistic range: -8 to +8 per week.
+        STATUS values:
+        - "strong" — visibly developed, good definition (BARE SKIN VISIBLE ONLY)
+        - "moderate" — some development, room to grow (BARE SKIN VISIBLE ONLY)
+        - "weak" — underdeveloped, priority area (BARE SKIN VISIBLE ONLY)
+        - "covered" — zone hidden by clothing, NOT assessed (note: describe what clothing is covering it)
+        DELTA: % change since last scan. Realistic range: -8 to +8 per week. MUST be 0 for covered zones.
 
-        Scoring guide:
+        Scoring guide (overallScore based ONLY on visible zones):
         - 30-45: Beginner, minimal muscle development
         - 46-55: Some foundation, major gaps
         - 56-65: Intermediate, clear strengths and weaknesses
         - 66-75: Advanced, most zones developed
         - 76-85: Elite, near-complete development
         - 86+: Exceptional, competition-ready
+        If more than half the body is covered, cap overallScore at 60 and note limited visibility.
 
         irisMessage rules:
         - 2-3 sentences max
         - Brutally honest, no sugar-coating
-        - Call out the weakest zone by name
-        - Acknowledge the strongest zone
+        - Call out the weakest VISIBLE zone by name
+        - Acknowledge the strongest VISIBLE zone
         - If previous scan data exists, mention whether they improved or declined
+        - If ANY zones are covered, end with something like "Show more skin next time — I can only judge what I can see."
         - End with a direct challenge or command
         - Sound like a coach who respects you but won't let you slack
+        - NEVER compliment or critique a zone you marked as "covered"
 
-        Evaluate muscle development, symmetry, posture, and body composition. Factor in the user's stats (height/weight/BMI) for body fat assessment. Be accurate — users trust you with the truth.
+        Evaluate muscle development, symmetry, posture, and body composition based on what is ACTUALLY VISIBLE. Factor in the user's stats (height/weight/BMI) for body fat assessment. Be accurate — users trust you with the truth and pay for honesty, not guesswork.
         """
 
         let body: [String: Any] = [
-            "model": "claude-sonnet-4-20250514",
+            "model": "claude-sonnet-4-6",
             "max_tokens": 1024,
             "messages": [
                 [

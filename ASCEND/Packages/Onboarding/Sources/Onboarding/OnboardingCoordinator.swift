@@ -22,7 +22,6 @@ public enum OnboardingScreen: Int, CaseIterable {
     // Phase 3: Affirmation & permissions
     case affirmation
     case thankYou
-    case healthConnect
     case notifications
     case allDone
 
@@ -77,10 +76,26 @@ public final class OnboardingCoordinator {
             isComplete = true
             return
         }
+
+        // If user already purchased, skip remaining paywall screens
+        if data.didPurchase && isPaywallScreen(next) {
+            currentScreen = .scan
+            return
+        }
+
         if next == .cameraSetup {
             currentScreen = .scan
         } else {
             currentScreen = next
+        }
+    }
+
+    private func isPaywallScreen(_ screen: OnboardingScreen) -> Bool {
+        switch screen {
+        case .paywallIntro, .trialReminder, .trialStart, .monthlyFallback:
+            return true
+        default:
+            return false
         }
     }
 

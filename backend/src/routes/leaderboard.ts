@@ -9,6 +9,11 @@ import { Errors } from "../middleware/errorHandler";
 
 const router = Router();
 
+const VALID_GOAL_AREAS = new Set([
+  "chest", "back", "shoulders", "arms", "legs", "core",
+  "glutes", "abs", "calves", "neck", "forearms", "traps",
+]);
+
 // All routes require authentication
 router.use(requireAuth);
 
@@ -31,6 +36,12 @@ router.get("/", async (req: Request, res: Response, next: NextFunction) => {
 
     if (type === "goal" && !goalArea) {
       throw Errors.badRequest("goalArea is required when type=goal");
+    }
+
+    if (goalArea && !VALID_GOAL_AREAS.has(goalArea.toLowerCase())) {
+      throw Errors.badRequest(
+        `Invalid goalArea. Allowed values: ${[...VALID_GOAL_AREAS].join(", ")}`
+      );
     }
 
     // Build cache key

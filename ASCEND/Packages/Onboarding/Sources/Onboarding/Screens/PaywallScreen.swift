@@ -21,7 +21,7 @@ struct PaywallScreen: View {
 
     private let features: [(icon: String, text: String)] = [
         ("viewfinder", "Weekly body scans with AI analysis"),
-        ("eye.fill", "Full IRIS AI diagnostics"),
+        ("eye.fill", "Full IRIS AI analysis"),
         ("chart.line.uptrend.xyaxis", "Week-by-week progress tracking"),
         ("person.3.fill", "Leaderboard & community"),
         ("diamond.fill", "Diamond milestones & badges"),
@@ -108,6 +108,7 @@ struct PaywallScreen: View {
                         isPurchasing = false
                         if success {
                             DSHaptic.celebration()
+                            coordinator.data.didPurchase = true
                             coordinator.advance()
                         } else if let error = SubscriptionManager.shared.purchaseError {
                             purchaseError = error
@@ -303,7 +304,7 @@ struct PaywallScreen: View {
     static let termsSections: [(String, String)] = [
         ("Acceptance of Terms", "By downloading, installing, or using ASCEND, you agree to be bound by these Terms of Use."),
         ("Description of Service", "ASCEND is a body transformation tracking application that uses AI-powered visual analysis. ASCEND is NOT a medical device."),
-        ("Eligibility", "You must be at least 17 years old to use ASCEND."),
+        ("Eligibility", "You must be at least 18 years old to use ASCEND."),
         ("Subscriptions & Payments", "ASCEND offers premium features through auto-renewable subscriptions via Apple In-App Purchase. Yearly: $29.99/year (3-day free trial). Monthly: $9.99/month (billed immediately). Subscription auto-renews unless cancelled at least 24 hours before the end of the current period. Manage in Settings > Apple ID > Subscriptions."),
         ("User Content", "You retain ownership of photos and data you submit. Your photos are encrypted and never shared with third parties."),
         ("AI Disclaimer", "AI-generated feedback is for fitness guidance only. Consult a healthcare professional for medical advice."),
@@ -313,12 +314,12 @@ struct PaywallScreen: View {
 
     static let privacySections: [(String, String)] = [
         ("Information We Collect", "Account information (name, email), body data (scan photos, scores), fitness data (training frequency, progress), usage data (anonymized analytics), subscription data (managed by Apple)."),
-        ("How We Use Your Information", "To provide AI-powered diagnostics, generate coaching messages, maintain leaderboards, send notifications, and improve the app."),
+        ("How We Use Your Information", "To provide AI-powered body analysis, generate coaching messages, maintain leaderboards, send notifications, and improve the app."),
         ("Data Security", "Photos are encrypted on-device. All data in transit uses TLS 1.3. Cloud storage uses AES-256 encryption. We never sell or share your data."),
         ("Data Retention", "Data is retained while your account is active. Upon deletion, all data is permanently removed within 30 days."),
         ("Your Rights", "Access your data (Profile > Export My Data). Delete your account (Profile > Account > Delete Account). Opt out of notifications and analytics."),
         ("Third-Party Services", "Apple In-App Purchase, Anthropic Claude API (for AI analysis), Apple Push Notification Service."),
-        ("Children's Privacy", "ASCEND is rated 17+ and is not intended for anyone under 17."),
+        ("Children's Privacy", "ASCEND is rated 18+ and is not intended for anyone under 18."),
         ("Contact Us", "For privacy inquiries: privacy@ascendapp.us"),
     ]
 }

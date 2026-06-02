@@ -5,14 +5,46 @@ import Gamification
 import Diagnostics
 import BodyModel3D
 import Networking
+import Notifications
+import Paywall
+import UserNotifications
+
+// MARK: - Foreground Notification Handler
+
+/// Allows notifications to display as banners even when the app is in the foreground.
+class NotificationDelegate: NSObject, UNUserNotificationCenterDelegate {
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        willPresent notification: UNNotification,
+        withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+    ) {
+        // Show banner + sound even when app is open
+        completionHandler([.banner, .sound, .badge])
+    }
+
+    func userNotificationCenter(
+        _ center: UNUserNotificationCenter,
+        didReceive response: UNNotificationResponse,
+        withCompletionHandler completionHandler: @escaping () -> Void
+    ) {
+        // User tapped the notification — just open the app (default behavior)
+        completionHandler()
+    }
+}
 
 @main
 struct ASCENDApp: App {
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
+    private let notificationDelegate = NotificationDelegate()
 
     init() {
-        // Load API key from Keychain on launch
+        // Load API key from Keychain on launch.
+        // RevenueCat and other SDK configs happen here but are fast.
+        // Heavy data loading (SwiftData, images) is deferred to bootstrap().
         APIKeyManager.bootstrap()
+
+        // Set notification delegate so banners show in foreground
+        UNUserNotificationCenter.current().delegate = notificationDelegate
     }
 
     var body: some Scene {
@@ -27,6 +59,7 @@ struct ContentSwitcher: View {
     @Binding var hasCompletedOnboarding: Bool
     @State private var appState = AppState()
     @State private var showSplash = true
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         ZStack {
@@ -59,6 +92,30 @@ struct ContentSwitcher: View {
                 withAnimation(.easeOut(duration: 0.5)) {
                     showSplash = false
                 }
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .active:
+                // User returned to app — refresh Live Activity with latest data
+                // (streak-at-risk may have changed, score may differ, etc.)
+                if hasCompletedOnboarding {
+                    appState.refreshLiveActivity()
+                    appState.checkStreakDanger()
+                }
+            case .background:
+                // App going to background — ensure Live Activity is current
+                if hasCompletedOnboarding {
+                    appState.refreshLiveActivity()
+                } else if !SubscriptionManager.shared.isPremium {
+                    // User backgrounded during onboarding without subscribing.
+                    // Schedule re-engagement drip now — they may never finish onboarding.
+                    let hour = appState.notificationHour > 0 ? appState.notificationHour : 9
+                    NotificationScheduler.shared.scheduleReEngagementDrip(notificationHour: hour)
+                    print("[Notifications] User backgrounded during onboarding — scheduling re-engagement")
+                }
+            default:
+                break
             }
         }
     }
@@ -106,6 +163,20 @@ struct ContentSwitcher: View {
         // Save the onboarding scan + diagnosis so Progress tab reflects the first scan
         if let diagnosis = data.diagnosisResult {
             appState.completeScan(photos: data.scanPhotos, diagnosis: diagnosis)
+            // Cancel first-scan reminders since they completed it
+            NotificationScheduler.shared.cancelFirstScanReminders()
+        } else {
+            // User skipped the scan — nudge them to come back
+            NotificationScheduler.shared.scheduleFirstScanReminder(notificationHour: data.notificationHour)
+        }
+
+        // If user skipped the paywall, schedule re-engagement drip.
+        // Only check didPurchase (not isPremium) — isPremium can be stale from
+        // previous test sessions and would silently block the drip.
+        // The drip auto-cancels when they subscribe or scan anyway.
+        if !data.didPurchase {
+            print("[Notifications] Scheduling re-engagement drip — user skipped paywall")
+            NotificationScheduler.shared.scheduleReEngagementDrip(notificationHour: data.notificationHour)
         }
     }
 

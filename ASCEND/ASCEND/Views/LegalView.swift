@@ -15,10 +15,10 @@ struct TermsOfUseView: View {
                         sectionBody("By downloading, installing, or using ASCEND (\"the App\"), you agree to be bound by these Terms of Use. If you do not agree to these terms, do not use the App.")
 
                         sectionHeader("2. Description of Service")
-                        sectionBody("ASCEND is a body transformation tracking application that uses AI-powered visual analysis to provide fitness diagnostics, progress tracking, and motivational coaching. ASCEND is NOT a medical device and does not provide medical advice, diagnosis, or treatment.")
+                        sectionBody("ASCEND is a body transformation tracking application that uses AI-powered visual analysis to provide fitness analysis, progress tracking, and motivational coaching. ASCEND is NOT a medical device and does not provide medical advice, diagnosis, or treatment.")
 
                         sectionHeader("3. Eligibility")
-                        sectionBody("You must be at least 17 years old to use ASCEND. By using the App, you represent and warrant that you meet this age requirement.")
+                        sectionBody("You must be at least 18 years old to use ASCEND. By using the App, you represent and warrant that you meet this age requirement.")
 
                         sectionHeader("4. Account Registration")
                         sectionBody("You may create an account using Sign in with Apple, Google Sign-In, or email/password. You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.")
@@ -40,7 +40,7 @@ struct TermsOfUseView: View {
                         sectionHeader("6. User Content")
                         sectionBody("You retain ownership of photos and data you submit to ASCEND. By using the App, you grant ASCEND a limited license to process your photos for AI analysis purposes only. Your photos are encrypted and never shared with third parties.")
 
-                        sectionHeader("7. AI Diagnostics Disclaimer")
+                        sectionHeader("7. AI Analysis Disclaimer")
                         sectionBody("AI-generated scores, feedback, and recommendations are for fitness guidance only. They should not replace professional medical advice. Always consult a healthcare professional before making significant changes to your fitness or nutrition regimen.")
 
                         sectionHeader("8. Prohibited Conduct")
@@ -122,7 +122,7 @@ struct PrivacyPolicyView: View {
 
                         sectionHeader("2. How We Use Your Information")
                         sectionBody("""
-                        • To provide AI-powered body diagnostics and progress tracking.
+                        • To provide AI-powered body analysis and progress tracking.
                         • To generate personalized IRIS coaching messages.
                         • To maintain leaderboards and community features.
                         • To send push notifications (with your permission) for scan reminders, streak updates, and milestones.
@@ -134,8 +134,8 @@ struct PrivacyPolicyView: View {
                         We take your data security seriously:
 
                         • Body photos are encrypted on device using iOS file protection.
+                        • Photos are stored on your device and may be uploaded to our secure cloud infrastructure (AWS S3 with AES-256 encryption) for AI analysis processing.
                         • All data transmitted to our servers uses TLS 1.3 encryption.
-                        • Photos stored in cloud storage use AES-256 server-side encryption.
                         • We do not sell, rent, or share your personal data or photos with third parties.
                         • AI analysis is performed through Anthropic's Claude API with enterprise-grade security.
                         """)
@@ -164,14 +164,16 @@ struct PrivacyPolicyView: View {
                         ASCEND uses the following third-party services:
 
                         • Apple In-App Purchase: For subscription payments.
+                        • RevenueCat: Receives user IDs and subscription/purchase data for subscription management.
                         • Anthropic Claude API: For AI-powered body analysis and IRIS message generation.
+                        • Amazon Web Services (S3): Body scan photos may be stored in encrypted cloud storage (AES-256) for backend processing.
                         • Apple Push Notification Service (APNs): For push notifications.
 
                         Each service has its own privacy policy. We recommend reviewing them.
                         """)
 
                         sectionHeader("7. Children's Privacy")
-                        sectionBody("ASCEND is rated 17+ and is not intended for use by anyone under 17 years of age. We do not knowingly collect data from individuals under 17.")
+                        sectionBody("ASCEND is rated 18+ and is not intended for use by anyone under 18 years of age. We do not knowingly collect data from individuals under 18.")
 
                         sectionHeader("8. Changes to This Policy")
                         sectionBody("We may update this Privacy Policy from time to time. We will notify you of significant changes through the App or via email.")
@@ -297,7 +299,6 @@ struct MedicalDisclaimerView: View {
                 .lineSpacing(4)
         }
         .padding(16)
-        .background(Color.ds_charcoal)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .dsGlass()
     }
 }

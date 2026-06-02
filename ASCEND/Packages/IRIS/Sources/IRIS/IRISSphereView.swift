@@ -11,14 +11,18 @@ public struct IRISSphereView: View {
         self.size = size
     }
 
+    private var isSmall: Bool {
+        size == .badge || size == .tabIcon || size == .notification
+    }
+
     public var body: some View {
         ZStack {
-            IRISSceneRepresentable(state: state)
+            IRISSceneRepresentable(state: state, isSmall: isSmall)
                 .frame(width: size.points, height: size.points)
-                .dsGlow(
-                    color: state == .warning ? .ds_purple : .ds_cyan,
-                    radius: glowRadius,
-                    intensity: state.glowIntensity
+                .shadow(
+                    color: (state == .warning ? Color.ds_purple : Color.ds_cyan)
+                        .opacity(state.glowIntensity * (isSmall ? 0.4 : 0.8)),
+                    radius: glowRadius
                 )
         }
         .frame(width: size.points, height: size.points)
@@ -37,21 +41,27 @@ public struct IRISSphereView: View {
 
 struct IRISSceneRepresentable: UIViewRepresentable {
     let state: IRISState
+    var isSmall: Bool = false
 
     func makeUIView(context: Context) -> SCNView {
         let scnView = SCNView()
         scnView.scene = IRISSceneBuilder.buildScene(state: state)
         scnView.backgroundColor = .clear
-        scnView.antialiasingMode = .multisampling4X
+        // Small views (badge/tabIcon): skip expensive AA, lower frame rate
+        scnView.antialiasingMode = isSmall ? .none : .multisampling2X
         scnView.allowsCameraControl = false
         scnView.autoenablesDefaultLighting = false
-        scnView.isPlaying = true
+        scnView.isPlaying = !isSmall  // Static snapshot for tiny views
+        scnView.preferredFramesPerSecond = isSmall ? 0 : 30
+        scnView.rendersContinuously = !isSmall
         return scnView
     }
 
     func updateUIView(_ scnView: SCNView, context: Context) {
         guard let scene = scnView.scene else { return }
         IRISSceneBuilder.updateState(scene, to: state)
+        // One-shot render for small views after state update
+        if isSmall { scnView.setNeedsDisplay() }
     }
 }
 

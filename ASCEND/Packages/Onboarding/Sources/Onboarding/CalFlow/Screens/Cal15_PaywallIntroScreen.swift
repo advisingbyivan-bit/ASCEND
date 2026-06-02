@@ -13,7 +13,7 @@ struct Cal15_PaywallIntroScreen: View {
 
     private let features: [(icon: String, text: String)] = [
         ("viewfinder", "Weekly body scans with AI analysis"),
-        ("eye.fill", "Full IRIS AI diagnostics"),
+        ("eye.fill", "Full IRIS AI analysis"),
         ("chart.line.uptrend.xyaxis", "Week-by-week progress tracking"),
         ("person.3.fill", "Leaderboard & community"),
         ("diamond.fill", "Diamond milestones & badges"),

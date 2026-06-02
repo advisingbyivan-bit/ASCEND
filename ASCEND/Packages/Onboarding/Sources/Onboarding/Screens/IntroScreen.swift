@@ -10,7 +10,7 @@ struct IntroScreen: View {
 
     private let steps: [(icon: String, title: String, subtitle: String)] = [
         ("camera.viewfinder", "Scan your body", "Take a quick 3-angle photo scan using your camera"),
-        ("eye.fill", "Get AI diagnostics", "IRIS analyzes your physique and gives you a baseline score"),
+        ("eye.fill", "Get AI analysis", "IRIS analyzes your physique and gives you a baseline score"),
         ("chart.line.uptrend.xyaxis", "Track your progress", "Scan weekly and watch your transformation over time"),
     ]
 

@@ -6,13 +6,15 @@ import Diagnostics
 import Networking
 import Persistence
 import Gamification
+import Paywall
 
 struct HomeView: View {
     @Environment(AppState.self) private var appState
     @State private var irisMessage: String = ""
     @State private var displayedIrisMessage: String = ""
     @State private var isLoadingIris = true
-    @State private var viewReady = false
+    @State private var showCreditStore = false
+    @State private var showWorkoutLog = false
 
     // Entrance animations
     @State private var showXP = false
@@ -38,24 +40,15 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                LinearGradient(
-                    colors: [Color.ds_navy, Color.ds_navy.opacity(0.92)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
-
-                if viewReady {
-                    DSFloatingParticles(count: 12, colors: [Color.ds_purple.opacity(0.4), Color.ds_cyan.opacity(0.2)])
-                        .ignoresSafeArea()
-                }
+                DSAnimatedBackground()
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: DSSpacing.md) {
                         headerView
                         dailyXPBar
-                        if viewReady { focusAreaCard }
+                        focusAreaCard
                         statsRow
+                        workoutPromptCard
                         weekCalendar
                         milestoneTracker
                         irisInsightCard
@@ -64,11 +57,18 @@ struct HomeView: View {
                 }
             }
             .onAppear {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                    viewReady = true
-                }
                 loadIRISInsight()
                 triggerEntranceSequence()
+            }
+            .sheet(isPresented: $showCreditStore) {
+                CreditStoreView()
+                    .presentationDragIndicator(.visible)
+            }
+            .sheet(isPresented: $showWorkoutLog) {
+                WorkoutLogSheet()
+                    .environment(appState)
+                    .presentationDetents([.large])
+                    .presentationDragIndicator(.visible)
             }
         }
     }
@@ -173,31 +173,60 @@ struct HomeView: View {
                     .foregroundStyle(Color.ds_textSecondary)
             }
             Spacer()
-            diamondCounter
+            HStack(spacing: 6) {
+                scanCreditCounter
+                diamondCounter
+            }
         }
         .padding(.horizontal, DSSpacing.screenPadding)
         .padding(.top, DSSpacing.sm)
     }
 
+    private var scanCreditCounter: some View {
+        Button {
+            DSHaptic.light()
+            showCreditStore = true
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "bolt.fill")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color.ds_green)
+                    .shadow(color: Color.ds_green.opacity(0.5), radius: 4)
+                Text("\(ScanCreditManager.shared.availableScans)")
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.ds_green)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .background(Color.ds_green.opacity(0.1))
+            .clipShape(Capsule())
+        }
+    }
+
     private var diamondCounter: some View {
         HStack(spacing: 4) {
             Image(systemName: "diamond.fill")
-                .font(.system(size: 14))
+                .font(.system(size: 12))
                 .foregroundStyle(Color.ds_cyan)
+                .shadow(color: Color.ds_cyan.opacity(0.5), radius: 4)
             Text("\(appState.totalDiamonds)")
-                .font(DSFont.statSmall)
+                .font(.system(size: 14, weight: .bold, design: .rounded))
                 .foregroundStyle(Color.ds_cyan)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 10)
         .padding(.vertical, 6)
         .background(Color.ds_cyan.opacity(0.1))
         .clipShape(Capsule())
     }
 
-    private var dateString: String {
+    private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
         f.dateFormat = "EEEE, MMM d"
-        return f.string(from: Date())
+        return f
+    }()
+
+    private var dateString: String {
+        Self.dateFormatter.string(from: Date())
     }
 
     // MARK: - Daily XP Bar
@@ -217,6 +246,7 @@ struct HomeView: View {
                     Image(systemName: "bolt.fill")
                         .font(.system(size: 12))
                         .foregroundStyle(Color.ds_cyan)
+                        .shadow(color: Color.ds_cyan.opacity(0.5), radius: 4)
                         .symbolEffect(.pulse, options: .repeating, isActive: xpBarGlow)
                     Text("LEVEL \(level)")
                         .font(DSFont.captionBold)
@@ -233,7 +263,7 @@ struct HomeView: View {
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.ds_charcoal)
+                        .fill(Color.white.opacity(0.06))
                         .frame(height: 8)
 
                     RoundedRectangle(cornerRadius: 4)
@@ -258,28 +288,34 @@ struct HomeView: View {
 
                 Spacer()
 
-                if scannedToday {
+                if appState.hasEngagedToday {
                     HStack(spacing: 4) {
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 12))
                             .foregroundStyle(Color.ds_green)
-                        Text("Today done")
+                        Text("Checked in")
                             .font(DSFont.micro)
                             .foregroundStyle(Color.ds_green)
                     }
                 } else {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(Color.ds_yellow)
-                            .frame(width: 6, height: 6)
-                        Text("Scan to earn XP")
-                            .font(DSFont.micro)
-                            .foregroundStyle(Color.ds_yellow)
+                    Button {
+                        DSHaptic.light()
+                        showWorkoutLog = true
+                    } label: {
+                        HStack(spacing: 4) {
+                            Circle()
+                                .fill(Color.ds_yellow)
+                                .frame(width: 6, height: 6)
+                            Text("Check in")
+                                .font(DSFont.micro)
+                                .foregroundStyle(Color.ds_yellow)
+                        }
                     }
                 }
             }
         }
-        .dsCard()
+        .padding(DSSpacing.md)
+        .dsGlass(tint: .ds_cyan, tintOpacity: 0.04)
         .padding(.horizontal, DSSpacing.screenPadding)
         .opacity(showXP ? 1 : 0)
         .offset(y: showXP ? 0 : 20)
@@ -307,13 +343,13 @@ struct HomeView: View {
                     .tracking(2)
                 Spacer()
                 if appState.hasCompletedFirstScan {
-                    Text("Week \(appState.weekNumber) of 12")
+                    Text("Week \(appState.weekNumber) of \(appState.sprintWeeks)")
                         .font(DSFont.micro)
                         .foregroundStyle(Color.ds_textSecondary)
                 }
             }
 
-            if let diagnosis = appState.latestDiagnosis {
+            if appState.hasCompletedFirstScan, let diagnosis = appState.latestDiagnosis {
                 HStack(spacing: 0) {
                     BodyModelView(
                         gender: appState.gender,
@@ -375,7 +411,8 @@ struct HomeView: View {
                 .padding(.vertical, DSSpacing.md)
             }
         }
-        .dsCard()
+        .padding(DSSpacing.md)
+        .dsGlass(tint: .ds_cyan, tintOpacity: 0.05)
         .padding(.horizontal, DSSpacing.screenPadding)
         .opacity(showFocus ? 1 : 0)
         .offset(y: showFocus ? 0 : 20)
@@ -388,7 +425,51 @@ struct HomeView: View {
         case .weak: "Weak"
         case .target: "Target"
         case .base: "Base"
+        case .covered: "Covered"
         }
+    }
+
+    // MARK: - Workout Prompt Card
+
+    private var workoutPromptCard: some View {
+        Button {
+            DSHaptic.light()
+            showWorkoutLog = true
+        } label: {
+            HStack(spacing: DSSpacing.sm) {
+                ZStack {
+                    Circle()
+                        .fill((appState.hasEngagedToday ? Color.ds_green : Color.ds_green).opacity(0.15))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: appState.hasEngagedToday ? "checkmark.circle.fill" : "dumbbell.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color.ds_green)
+                }
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(appState.hasEngagedToday ? "Log another workout" : "Log today's workout")
+                        .font(DSFont.bodyBold)
+                        .foregroundStyle(Color.ds_textPrimary)
+                    Text(appState.hasEngagedToday
+                        ? "Streak secured — \(appState.currentStreak) day\(appState.currentStreak == 1 ? "" : "s")"
+                        : appState.currentStreak > 0
+                            ? "Keep your \(appState.currentStreak)-day streak alive"
+                            : "Start a streak today")
+                        .font(DSFont.micro)
+                        .foregroundStyle(appState.hasEngagedToday ? Color.ds_green : Color.ds_textSecondary)
+                }
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(Color.ds_textSecondary)
+            }
+            .padding(DSSpacing.md)
+            .dsGlass(tint: .ds_green, tintOpacity: 0.04)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, DSSpacing.screenPadding)
     }
 
     // MARK: - Stats Row
@@ -453,10 +534,11 @@ struct HomeView: View {
 
     private func statCard(animatedValue: Int, label: String, icon: String, color: Color, isActive: Bool, delay: Int) -> some View {
         VStack(spacing: 6) {
-            // Icon with subtle pulse when active
+            // Icon with glow halo + pulse when active
             Image(systemName: icon)
                 .font(.system(size: 16))
                 .foregroundStyle(color)
+                .shadow(color: isActive ? color.opacity(0.5) : .clear, radius: 6)
                 .symbolEffect(.pulse, options: .repeating.speed(0.5), isActive: isActive && streakFlicker)
 
             Text("\(animatedValue)")
@@ -470,13 +552,7 @@ struct HomeView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, DSSpacing.sm)
-        .background(Color.ds_charcoal)
-        .clipShape(RoundedRectangle(cornerRadius: DSSpacing.cardRadius))
-        .overlay(
-            RoundedRectangle(cornerRadius: DSSpacing.cardRadius)
-                .stroke(isActive ? color.opacity(0.5) : Color.ds_cardBorder, lineWidth: isActive ? 1.5 : 1)
-        )
-        .shadow(color: isActive ? color.opacity(0.2) : .clear, radius: 10, x: 0, y: 3)
+        .dsGlass(tint: isActive ? color : .clear, tintOpacity: isActive ? 0.05 : 0)
     }
 
     // MARK: - Week Calendar
@@ -495,6 +571,7 @@ struct HomeView: View {
                     Image(systemName: "flame.fill")
                         .font(.system(size: 10))
                         .foregroundStyle(appState.streakTier.color)
+                        .shadow(color: appState.streakTier.color.opacity(0.5), radius: 4)
                         .symbolEffect(.pulse, options: .repeating.speed(0.4), isActive: streakFlicker && appState.currentStreak > 0)
                     Text("\(appState.currentStreak) day streak")
                         .font(DSFont.micro)
@@ -506,7 +583,9 @@ struct HomeView: View {
                 ForEach(0..<7, id: \.self) { i in
                     let calWeekday = i + 1
                     let isToday = calWeekday == weekday
-                    let isScanned = appState.scanWeekdays.contains(calWeekday)
+                    let didEngage = appState.engagementWeekdays.contains(calWeekday)
+                    let didScan = appState.scanWeekdays.contains(calWeekday)
+                    let didWorkout = appState.workoutWeekdays.contains(calWeekday)
                     let revealed = revealedDays.contains(i)
 
                     VStack(spacing: 6) {
@@ -515,15 +594,15 @@ struct HomeView: View {
                             .foregroundStyle(isToday ? Color.ds_cyan : Color.ds_textSecondary)
 
                         ZStack {
-                            // Glow ring behind scanned days
-                            if isScanned {
+                            // Glow ring behind engaged days
+                            if didEngage {
                                 Circle()
-                                    .fill(Color.ds_cyan.opacity(0.15))
+                                    .fill((didScan ? Color.ds_cyan : Color.ds_green).opacity(0.15))
                                     .frame(width: 36, height: 36)
                             }
 
                             Circle()
-                                .fill(isScanned ? Color.ds_cyan.opacity(0.25) : Color.ds_charcoal.opacity(0.5))
+                                .fill(didEngage ? (didScan ? Color.ds_cyan : Color.ds_green).opacity(0.25) : Color.white.opacity(0.06))
                                 .frame(width: 32, height: 32)
 
                             if isToday {
@@ -532,10 +611,21 @@ struct HomeView: View {
                                     .frame(width: 32, height: 32)
                             }
 
-                            if isScanned {
+                            if didScan {
+                                // Scan day — viewfinder icon
+                                Image(systemName: "viewfinder")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(Color.ds_cyan)
+                            } else if didWorkout {
+                                // Workout day — dumbbell icon
+                                Image(systemName: "dumbbell.fill")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(Color.ds_green)
+                            } else if didEngage {
+                                // Other engagement (weight log, etc.)
                                 Image(systemName: "checkmark")
                                     .font(.system(size: 12, weight: .bold))
-                                    .foregroundStyle(Color.ds_cyan)
+                                    .foregroundStyle(Color.ds_green)
                             }
                         }
                         .scaleEffect(revealed ? 1 : 0.3)
@@ -594,7 +684,7 @@ struct HomeView: View {
                 }
 
                 Circle()
-                    .fill(earned ? Color.ds_cyan : Color.ds_charcoal)
+                    .fill(earned ? Color.ds_cyan : Color.white.opacity(0.06))
                     .frame(width: 36, height: 36)
 
                 Image(systemName: earned ? "diamond.fill" : "diamond")
@@ -609,7 +699,7 @@ struct HomeView: View {
 
     private func milestoneLine(filled: Bool) -> some View {
         Rectangle()
-            .fill(filled ? Color.ds_cyan : Color.ds_charcoal)
+            .fill(filled ? Color.ds_cyan : Color.white.opacity(0.08))
             .frame(height: 2)
             .frame(maxWidth: .infinity)
     }
@@ -641,18 +731,8 @@ struct HomeView: View {
                 }
             }
         }
-        .dsCard()
-        .overlay(
-            RoundedRectangle(cornerRadius: DSSpacing.cardRadius)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.ds_cyan.opacity(0.2), Color.ds_purple.opacity(0.1)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
+        .padding(DSSpacing.md)
+        .dsGlass(tint: .ds_cyan, tintOpacity: 0.06)
         .padding(.horizontal, DSSpacing.screenPadding)
         .opacity(showIris ? 1 : 0)
         .offset(y: showIris ? 0 : 20)

@@ -57,10 +57,13 @@ public final class CreditStore {
     public func loadProducts() async {
         do {
             let productIDs = CreditPack.allCases.map(\.rawValue)
+            print("[CreditStore] Loading products: \(productIDs)")
             let storeProducts = try await Product.products(for: Set(productIDs))
             // Sort by price ascending (small → medium → large)
             products = storeProducts.sorted { $0.price < $1.price }
+            print("[CreditStore] Loaded \(products.count) products: \(products.map(\.id))")
         } catch {
+            print("[CreditStore] Failed to load products: \(error)")
             purchaseError = "Failed to load credit packs: \(error.localizedDescription)"
         }
     }
@@ -74,49 +77,61 @@ public final class CreditStore {
         purchaseError = nil
         defer { isPurchasing = false }
 
+        print("[CreditStore] Starting purchase: \(pack.rawValue) (\(pack.creditCount) credits)")
+
         // Try to find the StoreKit product
         var product = products.first { $0.id == pack.rawValue }
 
         if product == nil {
+            print("[CreditStore] Product not cached, loading...")
             await loadProducts()
             product = products.first { $0.id == pack.rawValue }
         }
 
         guard let storeProduct = product else {
+            print("[CreditStore] ERROR: Product \(pack.rawValue) not found in StoreKit")
             purchaseError = "Product not available. Please try again."
             return 0
         }
 
         do {
+            print("[CreditStore] Calling StoreKit purchase...")
             let result = try await storeProduct.purchase()
 
             switch result {
             case .success(let verification):
                 switch verification {
                 case .verified(let transaction):
+                    print("[CreditStore] Purchase verified! Transaction \(transaction.id)")
                     // Mark as processed so the Transaction.updates listener skips it
                     processedTransactionIDs.insert(transaction.id)
                     // Award credits
                     ScanCreditManager.shared.addCredits(pack.creditCount, source: pack.source)
                     await transaction.finish()
+                    print("[CreditStore] Credits awarded: \(pack.creditCount). Balance: \(ScanCreditManager.shared.credits)")
                     return pack.creditCount
 
                 case .unverified(_, let error):
+                    print("[CreditStore] ERROR: Unverified transaction: \(error)")
                     purchaseError = "Verification failed: \(error.localizedDescription)"
                     return 0
                 }
 
             case .userCancelled:
+                print("[CreditStore] User cancelled")
                 return 0
 
             case .pending:
+                print("[CreditStore] Purchase pending")
                 purchaseError = "Purchase is pending approval."
                 return 0
 
             @unknown default:
+                print("[CreditStore] Unknown result")
                 return 0
             }
         } catch {
+            print("[CreditStore] ERROR: Purchase threw: \(error)")
             purchaseError = "Purchase failed: \(error.localizedDescription)"
             return 0
         }

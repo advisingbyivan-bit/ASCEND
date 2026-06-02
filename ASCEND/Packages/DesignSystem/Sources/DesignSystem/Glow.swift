@@ -13,8 +13,7 @@ public struct DSGlow: ViewModifier {
 
     public func body(content: Content) -> some View {
         content
-            .shadow(color: color.opacity(intensity * 0.8), radius: radius, x: 0, y: 0)
-            .shadow(color: color.opacity(intensity * 0.4), radius: radius * 2, x: 0, y: 0)
+            .shadow(color: color.opacity(intensity * 0.7), radius: radius, x: 0, y: 0)
     }
 }
 
@@ -36,8 +35,7 @@ public struct DSPulsingGlow: ViewModifier {
 
     public func body(content: Content) -> some View {
         content
-            .shadow(color: color.opacity(glowing ? 0.6 : 0.2), radius: glowing ? radius : radius * 0.5)
-            .shadow(color: color.opacity(glowing ? 0.3 : 0.1), radius: glowing ? radius * 2 : radius)
+            .shadow(color: color.opacity(glowing ? 0.5 : 0.15), radius: glowing ? radius : radius * 0.5)
             .onAppear {
                 withAnimation(.easeInOut(duration: 2).repeatForever(autoreverses: true)) {
                     glowing = true

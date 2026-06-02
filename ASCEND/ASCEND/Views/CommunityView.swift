@@ -11,7 +11,7 @@ struct CommunityView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.ds_navy.ignoresSafeArea()
+                DSAnimatedBackground()
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: DSSpacing.md) {

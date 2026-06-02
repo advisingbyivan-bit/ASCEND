@@ -580,6 +580,7 @@ final class BodyModelBuilder {
         case .moderate: return (1.00, 0.76, 0.03)    // YELLOW — alright
         case .strong:   return (0.22, 1.00, 0.08)    // GREEN — strong areas
         case .target:   return (0.00, 0.85, 1.00)    // CYAN — target areas
+        case .covered:  return (0.25, 0.25, 0.30)    // DIM GRAY — not assessed
         }
     }
 

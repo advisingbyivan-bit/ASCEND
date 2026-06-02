@@ -20,7 +20,6 @@ public struct OnboardingData {
     // Cal-style flow: Blockers & Goals
     public var selectedBlocker: CalBlocker?
     public var selectedGoal: CalGoal?
-    public var healthKitGranted = false
     public var notificationsGranted = false
 
     // Account (populated by Sign in with Apple/Google/Email)

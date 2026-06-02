@@ -8,11 +8,11 @@ enum AppStoreConfig {
     // MARK: - App Metadata
 
     static let appName = "ASCEND"
-    static let subtitle = "AI Body Diagnostician"
+    static let subtitle = "AI Body Analyst"
     static let bundleID = "us.ascendapp.app"
     static let category = "Health & Fitness"
     static let secondaryCategory = "Lifestyle"
-    static let ageRating = "17+"
+    static let ageRating = "18+"
     static let version = "1.0.0"
     static let buildNumber = "1"
 
@@ -26,7 +26,7 @@ enum AppStoreConfig {
     // MARK: - App Store Description
 
     static let description = """
-    ASCEND is your AI-powered body diagnostician and accountability mirror.
+    ASCEND is your AI-powered body analyst and accountability mirror.
 
     FACE ID-STYLE BODY SCAN
     Stand in front of your camera. ASCEND captures front, side, and back views using advanced body pose detection. No manual measurements. No guessing.
@@ -38,7 +38,7 @@ enum AppStoreConfig {
     See your body as a color-coded holographic model. Red zones need work. Green zones are strong. Watch your zones change color as you progress week over week.
 
     TRACK EVERYTHING
-    • Weekly body scans with AI-powered diagnostics
+    • Weekly body scans with AI-powered analysis
     • Zone-by-zone breakdown (shoulders, chest, arms, core, back, legs)
     • Before/after 3D model comparisons
     • 12-week consistency tracking
@@ -65,12 +65,12 @@ enum AppStoreConfig {
     // MARK: - What's New (for updates)
 
     static let whatsNew = """
-    Welcome to ASCEND 1.0 — the AI body diagnostician that doesn't lie.
+    Welcome to ASCEND 1.0 — the AI body analyst that doesn't lie.
 
     • Face ID-style body scanning
     • IRIS AI coaching with brutal honesty
     • Holographic 3D body twin
-    • Zone-by-zone diagnostics
+    • Zone-by-zone analysis
     • Streak tracking & diamond milestones
     • Global leaderboard
     """
@@ -92,7 +92,7 @@ enum AppStoreConfig {
     2. Camera permission is required for body scanning
     3. Follow the on-screen prompts for front/side/back photos
 
-    Note: AI diagnostics require an active internet connection for Claude Vision API processing.
+    Note: AI analysis requires an active internet connection for Claude Vision API processing.
 
     Subscription testing:
     - Use sandbox Apple ID for in-app purchase testing
@@ -116,7 +116,7 @@ enum AppStoreConfig {
     static let screenshotDescriptions = [
         "1. Dashboard — Focus area with 3D body model, stats row, streak tracker, IRIS message card",
         "2. Body Scan — Face ID-style scanning interface with body pose frame overlay",
-        "3. Diagnosis Reveal — IRIS sphere processing with sequential zone lighting on 3D model",
+        "3. Analysis Reveal — IRIS sphere processing with sequential zone lighting on 3D model",
         "4. Progress — 12-week timeline with zone-by-zone breakdown and consistency grid",
         "5. Community — Global leaderboard with top 3 podium, badges, and streaks",
         "6. IRIS Coaching — Holographic sphere with brutally honest typewriter message",

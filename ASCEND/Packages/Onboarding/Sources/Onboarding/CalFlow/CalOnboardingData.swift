@@ -9,9 +9,6 @@ public struct CalOnboardingData {
     // Screen 3: Goals
     public var selectedGoal: CalGoal?
 
-    // Apple Health
-    public var healthKitGranted = false
-
     // Notifications
     public var notificationsGranted = false
 
