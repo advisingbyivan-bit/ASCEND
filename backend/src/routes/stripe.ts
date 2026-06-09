@@ -10,9 +10,7 @@ const router = Router();
 // Initialize Stripe — will fail gracefully if key not set
 let stripe: Stripe | null = null;
 if (config.stripe.secretKey) {
-  stripe = new Stripe(config.stripe.secretKey, {
-    apiVersion: "2025-05-28.basil",
-  });
+  stripe = new Stripe(config.stripe.secretKey);
 }
 
 // ----- Price mapping -----
