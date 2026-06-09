@@ -65,6 +65,10 @@ public final class OnboardingCoordinator {
     public var diagnosisResult: DiagnosisResult?
     public var isComplete = false
 
+    /// Closure to open web checkout in Safari. Set by the hosting app (ASCENDApp).
+    /// Parameter is the plan name ("yearly" or "monthly").
+    public var openWebCheckout: ((String) -> Void)?
+
     public init() {}
 
     public init(data: OnboardingData) {

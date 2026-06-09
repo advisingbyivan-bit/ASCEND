@@ -95,25 +95,16 @@ struct PaywallScreen: View {
                         .padding(.horizontal, DSSpacing.screenPadding)
                 }
 
-                // Glowing CTA
+                // Glowing CTA — redirects to web checkout (Stripe)
                 DSPrimaryButton(
-                    isPurchasing ? "Processing..." : (selectedPlan == .yearly ? "Start Free Trial" : "Subscribe Now"),
+                    isPurchasing ? "Opening checkout..." : (selectedPlan == .yearly ? "Start Free Trial" : "Subscribe Now"),
                     icon: isPurchasing ? nil : "lock.open.fill",
                     isLoading: isPurchasing
                 ) {
-                    Task {
-                        isPurchasing = true
-                        purchaseError = nil
-                        let success = await SubscriptionManager.shared.purchase(plan: selectedPlan)
-                        isPurchasing = false
-                        if success {
-                            DSHaptic.celebration()
-                            coordinator.data.didPurchase = true
-                            coordinator.advance()
-                        } else if let error = SubscriptionManager.shared.purchaseError {
-                            purchaseError = error
-                        }
-                    }
+                    isPurchasing = true
+                    purchaseError = nil
+                    let plan = selectedPlan == .yearly ? "yearly" : "monthly"
+                    coordinator.openWebCheckout?(plan)
                 }
                 .disabled(isPurchasing)
                 .padding(.horizontal, DSSpacing.screenPadding)

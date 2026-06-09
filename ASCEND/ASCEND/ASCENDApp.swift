@@ -51,6 +51,10 @@ struct ASCENDApp: App {
         WindowGroup {
             ContentSwitcher(hasCompletedOnboarding: $hasCompletedOnboarding)
                 .preferredColorScheme(.dark)
+                .onOpenURL { url in
+                    // Handle Universal Links from web checkout
+                    _ = WebCheckoutManager.shared.handleUniversalLink(url)
+                }
         }
     }
 }
@@ -69,7 +73,10 @@ struct ContentSwitcher: View {
                         .environment(appState)
                 } else {
                     OnboardingFlowView(
-                        googleSignInEnabled: !Secrets.googleClientID.isEmpty
+                        googleSignInEnabled: !Secrets.googleClientID.isEmpty,
+                        openWebCheckout: { plan in
+                            WebCheckoutManager.shared.openCheckout(plan: plan)
+                        }
                     ) { data in
                         saveOnboardingData(data)
                         hasCompletedOnboarding = true
@@ -86,6 +93,12 @@ struct ContentSwitcher: View {
         }
         .onAppear {
             appState.bootstrap()
+
+            // Set up web checkout return handler
+            WebCheckoutManager.shared.onSubscriptionActivated = {
+                // User returned from Stripe checkout with active subscription
+                appState.onSubscriptionActivated()
+            }
 
             // Hold splash briefly, then fade out
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {

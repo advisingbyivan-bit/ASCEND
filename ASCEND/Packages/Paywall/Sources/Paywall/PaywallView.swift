@@ -9,15 +9,19 @@ public struct PaywallView: View {
     let onDismiss: () -> Void
     var onTermsTap: (() -> Void)?
     var onPrivacyTap: (() -> Void)?
+    /// Called to open web checkout in Safari. Set by the parent view.
+    var onWebCheckout: ((String) -> Void)?
 
     public init(
         onDismiss: @escaping () -> Void,
         onTermsTap: (() -> Void)? = nil,
-        onPrivacyTap: (() -> Void)? = nil
+        onPrivacyTap: (() -> Void)? = nil,
+        onWebCheckout: ((String) -> Void)? = nil
     ) {
         self.onDismiss = onDismiss
         self.onTermsTap = onTermsTap
         self.onPrivacyTap = onPrivacyTap
+        self.onWebCheckout = onWebCheckout
     }
 
     public var body: some View {
@@ -70,20 +74,25 @@ public struct PaywallView: View {
                     }
                     .padding(.horizontal, DSSpacing.screenPadding)
 
-                    // CTA
+                    // CTA — redirects to web checkout (Stripe) to avoid App Store fees
                     DSPrimaryButton(
-                        isPurchasing ? "Processing..." : "Start Free Trial",
+                        isPurchasing ? "Opening checkout..." : "Start Free Trial",
                         icon: isPurchasing ? nil : "lock.open.fill",
                         isLoading: isPurchasing
                     ) {
-                        Task {
-                            isPurchasing = true
-                            let success = await SubscriptionManager.shared.purchase(plan: selectedPlan)
-                            isPurchasing = false
-                            if success {
-                                onDismiss()
+                        isPurchasing = true
+                        let plan = selectedPlan == .yearly ? "yearly" : "monthly"
+                        if let onWebCheckout {
+                            onWebCheckout(plan)
+                        } else {
+                            // Fallback: in-app purchase via StoreKit (for contexts without web checkout)
+                            Task {
+                                let success = await SubscriptionManager.shared.purchase(plan: selectedPlan)
+                                isPurchasing = false
+                                if success {
+                                    onDismiss()
+                                }
                             }
-                            // If failed, paywall stays open so user can retry
                         }
                     }
                     .disabled(isPurchasing || isRestoring)

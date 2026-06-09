@@ -1,0 +1,16 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "G7F453K538.us.ascendapp.app",
+        "paths": [
+          "/open",
+          "/open/*",
+          "/checkout/success",
+          "/checkout/success/*"
+        ]
+      }
+    ]
+  }
+}

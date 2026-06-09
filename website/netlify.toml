@@ -1,0 +1,12 @@
+[build]
+  publish = "."
+
+# Ensure .well-known directory is included
+[build.processing]
+  skip_processing = false
+
+[[headers]]
+  for = "/.well-known/*"
+  [headers.values]
+    Content-Type = "application/json"
+    Access-Control-Allow-Origin = "*"

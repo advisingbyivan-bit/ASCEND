@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ASCEND — Subscribe</title>
+  <meta name="apple-itunes-app" content="app-id=YOUR_APP_ID">
+  <style>
+    :root {
+      --navy: #0A0E1A;
+      --deep: #0D1224;
+      --charcoal: #141825;
+      --cyan: #00E5FF;
+      --cyan-dim: rgba(0, 229, 255, 0.15);
+      --purple: #8B5CF6;
+      --green: #22C55E;
+      --gold: #FFD700;
+      --text-primary: #FFFFFF;
+      --text-secondary: #94A3B8;
+      --card-bg: rgba(255, 255, 255, 0.04);
+      --card-border: rgba(255, 255, 255, 0.06);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, sans-serif;
+      background: var(--navy);
+      color: var(--text-primary);
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+    }
+
+    /* Animated background with IRIS-style rings */
+    .bg-gradient {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 50% 30%, rgba(0, 229, 255, 0.06) 0%, transparent 60%),
+                  radial-gradient(ellipse at 50% 70%, rgba(139, 92, 246, 0.03) 0%, transparent 50%),
+                  var(--navy);
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 400px;
+      margin: 0 auto;
+      padding: 20px 20px 32px;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header with IRIS orb */
+    .header {
+      text-align: center;
+      margin-bottom: 28px;
+      position: relative;
+    }
+
+    .logo-img {
+      height: 22px;
+      margin: 0 auto 20px;
+      display: block;
+      object-fit: contain;
+    }
+
+    /* Orb with stars */
+    .orb-wrapper {
+      width: 140px;
+      height: 140px;
+      margin: 0 auto 16px;
+      position: relative;
+    }
+
+    .orb {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, rgba(0, 229, 255, 0.6), rgba(139, 92, 246, 0.3), rgba(0, 229, 255, 0.1));
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      box-shadow: 0 0 40px rgba(0, 229, 255, 0.25), 0 0 80px rgba(139, 92, 246, 0.1);
+      animation: orb-pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes orb-pulse {
+      0%, 100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 40px rgba(0, 229, 255, 0.25), 0 0 80px rgba(139, 92, 246, 0.1); }
+      50% { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 0 60px rgba(0, 229, 255, 0.35), 0 0 100px rgba(139, 92, 246, 0.15); }
+    }
+
+    /* Floating stars */
+    .star {
+      position: absolute;
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.8);
+      box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+      animation: star-float linear infinite;
+    }
+
+    .star:nth-child(1) { top: 8%; left: 20%; width: 2px; height: 2px; animation-duration: 4s; animation-delay: 0s; }
+    .star:nth-child(2) { top: 15%; left: 75%; width: 3px; height: 3px; animation-duration: 3.5s; animation-delay: 0.5s; }
+    .star:nth-child(3) { top: 30%; left: 5%; width: 2px; height: 2px; animation-duration: 5s; animation-delay: 1s; }
+    .star:nth-child(4) { top: 70%; left: 10%; width: 2.5px; height: 2.5px; animation-duration: 4.5s; animation-delay: 0.3s; }
+    .star:nth-child(5) { top: 75%; left: 85%; width: 2px; height: 2px; animation-duration: 3.8s; animation-delay: 1.2s; }
+    .star:nth-child(6) { top: 50%; left: 92%; width: 3px; height: 3px; animation-duration: 4.2s; animation-delay: 0.8s; }
+    .star:nth-child(7) { top: 85%; left: 40%; width: 2px; height: 2px; animation-duration: 5.5s; animation-delay: 0.2s; }
+    .star:nth-child(8) { top: 5%; left: 50%; width: 2.5px; height: 2.5px; animation-duration: 3.2s; animation-delay: 1.5s; }
+    .star:nth-child(9) { top: 40%; left: 88%; width: 1.5px; height: 1.5px; animation-duration: 6s; animation-delay: 0.7s; }
+    .star:nth-child(10) { top: 60%; left: 3%; width: 2px; height: 2px; animation-duration: 4.8s; animation-delay: 1.8s; }
+    .star:nth-child(11) { top: 90%; left: 70%; width: 2px; height: 2px; animation-duration: 3.6s; animation-delay: 0.4s; }
+    .star:nth-child(12) { top: 20%; left: 40%; width: 1.5px; height: 1.5px; animation-duration: 5.2s; animation-delay: 2s; }
+
+    /* Cyan-tinted stars */
+    .star.cyan {
+      background: rgba(0, 229, 255, 0.7);
+      box-shadow: 0 0 6px rgba(0, 229, 255, 0.5);
+    }
+
+    @keyframes star-float {
+      0% { opacity: 0; transform: translateY(0) scale(0.5); }
+      20% { opacity: 1; transform: translateY(-4px) scale(1); }
+      80% { opacity: 1; transform: translateY(-12px) scale(1); }
+      100% { opacity: 0; transform: translateY(-18px) scale(0.3); }
+    }
+
+    /* Ambient glow behind orb */
+    .orb-glow {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(0, 229, 255, 0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      letter-spacing: -0.3px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: var(--cyan);
+      opacity: 0.9;
+    }
+
+    /* Features list */
+    .features {
+      margin-bottom: 24px;
+    }
+
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 0;
+    }
+
+    .feature-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--cyan-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .feature-icon svg {
+      width: 14px;
+      height: 14px;
+      color: var(--cyan);
+    }
+
+    .feature-text {
+      font-size: 14px;
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    /* Plan cards */
+    .plans {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .plan-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: var(--card-bg);
+      border: 1.5px solid var(--card-border);
+      cursor: pointer;
+      transition: all 0.25s ease;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .plan-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      opacity: 0;
+      background: linear-gradient(135deg, rgba(0, 229, 255, 0.06), rgba(0, 229, 255, 0.02));
+      transition: opacity 0.25s ease;
+    }
+
+    .plan-card:hover::before {
+      opacity: 1;
+    }
+
+    .plan-card.selected {
+      border-color: var(--cyan);
+      background: rgba(0, 229, 255, 0.06);
+    }
+
+    .plan-card.selected::before {
+      opacity: 1;
+    }
+
+    .plan-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .plan-radio {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+
+    .plan-card.selected .plan-radio {
+      border-color: var(--cyan);
+    }
+
+    .plan-radio::after {
+      content: '';
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      transform: scale(0);
+      transition: transform 0.2s ease;
+    }
+
+    .plan-card.selected .plan-radio::after {
+      transform: scale(1);
+    }
+
+    .plan-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .plan-name-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .plan-name {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .plan-card.selected .plan-name {
+      color: var(--cyan);
+    }
+
+    .plan-badge {
+      font-size: 8px;
+      font-weight: 700;
+      color: var(--navy);
+      background: var(--cyan);
+      padding: 2px 7px;
+      border-radius: 100px;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .plan-subtitle {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+
+    .plan-price {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      position: relative;
+      z-index: 1;
+    }
+
+    .plan-card.selected .plan-price {
+      color: var(--cyan);
+    }
+
+    /* CTA button */
+    .cta-btn {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+      background: var(--cyan);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-bottom: 14px;
+      -webkit-tap-highlight-color: transparent;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.2px;
+    }
+
+    .cta-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+    }
+
+    .cta-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 24px rgba(0, 229, 255, 0.35);
+    }
+
+    .cta-btn:active:not(:disabled) {
+      transform: translateY(0);
+    }
+
+    .cta-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .cta-btn .spinner {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 2.5px solid var(--navy);
+      border-top-color: transparent;
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      margin: 0 auto;
+    }
+
+    .cta-btn.loading .btn-text { display: none; }
+    .cta-btn.loading .spinner { display: block; }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Guarantee badge */
+    .guarantee {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    .guarantee svg {
+      width: 14px;
+      height: 14px;
+      color: var(--green);
+    }
+
+    .guarantee span {
+      font-size: 11px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    /* Disclosures */
+    .disclosures {
+      margin-top: auto;
+      text-align: center;
+      padding-top: 12px;
+    }
+
+    .disclosures p {
+      font-size: 10px;
+      color: var(--text-secondary);
+      opacity: 0.5;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+
+    .disclosures a {
+      color: var(--cyan);
+      opacity: 0.5;
+      text-decoration: none;
+      font-size: 10px;
+    }
+
+    .legal-links {
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      margin-top: 6px;
+    }
+
+    /* Error banner */
+    .error-banner {
+      display: none;
+      padding: 12px 16px;
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      border-radius: 12px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      color: #EF4444;
+      text-align: center;
+    }
+
+    .error-banner.visible {
+      display: block;
+    }
+
+    /* ===== SUCCESS VIEW ===== */
+    .success-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .success-container.visible {
+      display: flex;
+    }
+
+    .success-check {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: rgba(34, 197, 94, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      animation: success-pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes success-pop {
+      0% { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+
+    .success-check svg {
+      width: 40px;
+      height: 40px;
+      color: var(--green);
+    }
+
+    .success-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .success-text {
+      font-size: 15px;
+      color: var(--text-secondary);
+      margin-bottom: 32px;
+      line-height: 1.5;
+    }
+
+    .open-app-btn {
+      display: inline-block;
+      padding: 14px 40px;
+      background: var(--cyan);
+      color: var(--navy);
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 14px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+
+    .open-app-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+    }
+
+    .open-app-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 24px rgba(0, 229, 255, 0.35);
+    }
+
+    /* ===== CANCEL VIEW ===== */
+    .cancel-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: 40px 20px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .cancel-container.visible {
+      display: flex;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+
+  <!-- CHECKOUT VIEW -->
+  <div class="container" id="checkout-view">
+    <div class="header">
+      <div class="orb-glow"></div>
+      <img src="/assets/ascend-logo-clean.png" alt="ASCEND" class="logo-img">
+
+      <div class="orb-wrapper">
+        <div class="star cyan"></div>
+        <div class="star"></div>
+        <div class="star cyan"></div>
+        <div class="star"></div>
+        <div class="star cyan"></div>
+        <div class="star"></div>
+        <div class="star cyan"></div>
+        <div class="star"></div>
+        <div class="star"></div>
+        <div class="star cyan"></div>
+        <div class="star"></div>
+        <div class="star cyan"></div>
+        <div class="orb"></div>
+      </div>
+
+      <div class="title">Unlock Full Access</div>
+      <div class="subtitle" id="subtitle-text">Start your 3-day free trial</div>
+    </div>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.04l-.821 1.316z" /><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+        </div>
+        <span class="feature-text">Weekly AI body scans</span>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        </div>
+        <span class="feature-text">Full IRIS AI diagnostics</span>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+        </div>
+        <span class="feature-text">Week-by-week progress tracking</span>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.5 18.75h-9m9 0a3 3 0 013 3h-15a3 3 0 013-3m9 0v-3.375c0-.621-.503-1.125-1.125-1.125h-.871M7.5 18.75v-3.375c0-.621.504-1.125 1.125-1.125h.872m5.007 0H9.497m5.007 0a7.454 7.454 0 01-.982-3.172M9.497 14.25a7.454 7.454 0 00.981-3.172M5.25 4.236c-.982.143-1.954.317-2.916.52A6.003 6.003 0 007.73 9.728M5.25 4.236V4.5c0 2.108.966 3.99 2.48 5.228M5.25 4.236V2.721C7.456 2.41 9.71 2.25 12 2.25c2.291 0 4.545.16 6.75.47v1.516M18.75 4.236c.982.143 1.954.317 2.916.52A6.003 6.003 0 0016.27 9.728M18.75 4.236V4.5c0 2.108-.966 3.99-2.48 5.228m0 0a6.023 6.023 0 01-7.54 0" /></svg>
+        </div>
+        <span class="feature-text">Diamond milestones & badges</span>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" /></svg>
+        </div>
+        <span class="feature-text">Smart accountability notifications</span>
+      </div>
+    </div>
+
+    <div class="plans">
+      <div class="plan-card selected" data-plan="monthly" onclick="selectPlan('monthly')">
+        <div class="plan-left">
+          <div class="plan-radio"></div>
+          <div class="plan-info">
+            <div class="plan-name-row">
+              <span class="plan-name">Monthly</span>
+              <span class="plan-badge">BEST VALUE</span>
+            </div>
+            <span class="plan-subtitle">3-day free trial — cancel anytime</span>
+          </div>
+        </div>
+        <span class="plan-price">$9.99/mo</span>
+      </div>
+      <div class="plan-card" data-plan="weekly" onclick="selectPlan('weekly')">
+        <div class="plan-left">
+          <div class="plan-radio"></div>
+          <div class="plan-info">
+            <div class="plan-name-row">
+              <span class="plan-name">Weekly</span>
+            </div>
+            <span class="plan-subtitle">Billed weekly, cancel anytime</span>
+          </div>
+        </div>
+        <span class="plan-price">$3.99/wk</span>
+      </div>
+    </div>
+
+    <div class="error-banner" id="error-banner"></div>
+
+    <button class="cta-btn" id="cta-btn" onclick="startCheckout()">
+      <span class="btn-text">Start Free Trial</span>
+      <div class="spinner"></div>
+    </button>
+
+    <div class="guarantee">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+      <span>Secure checkout powered by Stripe</span>
+    </div>
+
+    <div class="disclosures">
+      <p>No payment due now for monthly plan. After your 3-day free trial, your subscription will auto-renew at the selected price. Cancel anytime.</p>
+      <div class="legal-links">
+        <a href="/terms.html">Terms</a>
+        <a href="/privacy.html">Privacy</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS VIEW -->
+  <div class="success-container" id="success-view">
+    <div class="success-check">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+      </svg>
+    </div>
+    <div class="success-title">You're In</div>
+    <div class="success-text">Your ASCEND subscription is active.<br>Open the app to start your transformation.</div>
+    <a href="https://ascendapp.us/open" class="open-app-btn" id="open-app-link">Open ASCEND</a>
+  </div>
+
+  <!-- CANCEL VIEW -->
+  <div class="cancel-container" id="cancel-view">
+    <div class="orb" style="width:60px;height:60px;position:relative;transform:none;margin-bottom:24px;"></div>
+    <div class="success-title">No worries</div>
+    <div class="success-text">You can subscribe anytime from the app.<br>Your progress is always saved.</div>
+    <a href="https://ascendapp.us/open" class="open-app-btn">Back to ASCEND</a>
+  </div>
+
+  <script>
+    // ===== Configuration =====
+    const API_BASE = 'https://ascend-api-production-f8bb.up.railway.app';
+    let selectedPlan = 'monthly';
+
+    // ===== Parse URL params =====
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    const sessionId = params.get('session_id');
+    const planParam = params.get('plan');
+
+    // Pre-select plan if passed from app
+    if (planParam === 'weekly' || planParam === 'monthly') {
+      selectedPlan = planParam;
+      // Update UI on load
+      document.addEventListener('DOMContentLoaded', () => selectPlan(planParam));
+    }
+
+    // ===== Route to correct view =====
+    if (window.location.pathname.includes('/checkout/success') || sessionId) {
+      showSuccess();
+    } else if (window.location.pathname.includes('/checkout/cancel')) {
+      showCancel();
+    }
+
+    // ===== Plan Selection =====
+    function selectPlan(plan) {
+      selectedPlan = plan;
+      document.querySelectorAll('.plan-card').forEach(card => {
+        card.classList.toggle('selected', card.dataset.plan === plan);
+      });
+
+      const btn = document.getElementById('cta-btn');
+      btn.querySelector('.btn-text').textContent =
+        plan === 'monthly' ? 'Start Free Trial' : 'Subscribe Now';
+
+      document.getElementById('subtitle-text').textContent =
+        plan === 'monthly' ? 'Start your 3-day free trial' : 'Unlock full access';
+    }
+
+    // ===== Start Checkout =====
+    async function startCheckout() {
+      if (!token) {
+        showError('Authentication required. Please open this page from the ASCEND app.');
+        return;
+      }
+
+      const btn = document.getElementById('cta-btn');
+      btn.classList.add('loading');
+      btn.disabled = true;
+      hideError();
+
+      try {
+        const res = await fetch(`${API_BASE}/stripe/checkout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({ plan: selectedPlan }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data.error || 'Failed to start checkout');
+        }
+
+        if (data.url) {
+          window.location.href = data.url;
+        } else {
+          throw new Error('No checkout URL returned');
+        }
+      } catch (err) {
+        showError(err.message || 'Something went wrong. Please try again.');
+        btn.classList.remove('loading');
+        btn.disabled = false;
+      }
+    }
+
+    // ===== Views =====
+    function showSuccess() {
+      document.getElementById('checkout-view').style.display = 'none';
+      document.getElementById('success-view').classList.add('visible');
+
+      const openLink = document.getElementById('open-app-link');
+      openLink.href = 'https://ascendapp.us/open?subscription=active';
+
+      setTimeout(() => {
+        window.location.href = 'https://ascendapp.us/open?subscription=active';
+      }, 2500);
+    }
+
+    function showCancel() {
+      document.getElementById('checkout-view').style.display = 'none';
+      document.getElementById('cancel-view').classList.add('visible');
+    }
+
+    // ===== Error handling =====
+    function showError(msg) {
+      const banner = document.getElementById('error-banner');
+      banner.textContent = msg;
+      banner.classList.add('visible');
+    }
+
+    function hideError() {
+      document.getElementById('error-banner').classList.remove('visible');
+    }
+  </script>
+</body>
+</html>

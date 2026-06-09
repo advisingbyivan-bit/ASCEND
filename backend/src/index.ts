@@ -23,6 +23,7 @@ import leaderboardRoutes from "./routes/leaderboard";
 import friendRoutes from "./routes/friends";
 import milestoneRoutes from "./routes/milestones";
 import waitlistRoutes from "./routes/waitlist";
+import stripeRoutes, { handleStripeWebhook } from "./routes/stripe";
 
 const app = express();
 
@@ -54,6 +55,9 @@ app.use(
     maxAge: 86400, // 24 hours preflight cache
   })
 );
+
+// Stripe webhook needs raw body for signature verification — mount BEFORE json parser
+app.post("/stripe/webhook", express.raw({ type: "application/json" }), handleStripeWebhook);
 
 // Request parsing
 app.use(express.json({ limit: "10mb" }));
@@ -96,6 +100,7 @@ app.use("/leaderboard", leaderboardRoutes);
 app.use("/friends", friendRoutes);
 app.use("/milestones", milestoneRoutes);
 app.use("/waitlist", waitlistRoutes);
+app.use("/stripe", stripeRoutes);
 
 // --- Error Handling ---
 

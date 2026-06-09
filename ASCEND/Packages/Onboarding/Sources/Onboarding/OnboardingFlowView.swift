@@ -5,10 +5,16 @@ public struct OnboardingFlowView: View {
     @State private var coordinator: OnboardingCoordinator
     let onComplete: (OnboardingData) -> Void
 
-    public init(googleSignInEnabled: Bool = false, onComplete: @escaping (OnboardingData) -> Void) {
+    public init(
+        googleSignInEnabled: Bool = false,
+        openWebCheckout: ((String) -> Void)? = nil,
+        onComplete: @escaping (OnboardingData) -> Void
+    ) {
         var data = OnboardingData()
         data.googleSignInEnabled = googleSignInEnabled
-        self._coordinator = State(initialValue: OnboardingCoordinator(data: data))
+        let coord = OnboardingCoordinator(data: data)
+        coord.openWebCheckout = openWebCheckout
+        self._coordinator = State(initialValue: coord)
         self.onComplete = onComplete
     }
 

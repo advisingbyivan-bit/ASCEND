@@ -14,5 +14,10 @@
 	<array>
 		<string>group.us.ascend.app</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:ascendapp.us</string>
+		<string>applinks:www.ascendapp.us</string>
+	</array>
 </dict>
 </plist>

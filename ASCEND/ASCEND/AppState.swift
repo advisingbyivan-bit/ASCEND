@@ -35,6 +35,7 @@ public final class AppState {
 
     // MARK: - Scan History
     var totalScans: Int = 0
+    var totalWorkouts: Int = 0
     var latestDiagnosis: DiagnosisResult?
     var weeklyScans: Int = 0
     /// Weekday indices (1=Sun, 2=Mon, …, 7=Sat) that had scans this week
@@ -192,9 +193,11 @@ public final class AppState {
         do {
             workoutWeekdays = try DataStore.shared.workoutWeekdays()
             engagementWeekdays = scanWeekdays.union(workoutWeekdays)
+            totalWorkouts = (try? DataStore.shared.fetchWorkouts().count) ?? 0
         } catch {
             workoutWeekdays = []
             engagementWeekdays = scanWeekdays
+            totalWorkouts = 0
         }
     }
 
@@ -355,6 +358,7 @@ public final class AppState {
         }
 
         // Update local state
+        totalWorkouts += 1
         let today = Calendar.current.component(.weekday, from: Date())
         workoutWeekdays.insert(today)
         engagementWeekdays.insert(today)
@@ -669,6 +673,7 @@ public final class AppState {
         }
 
         totalScans = 0
+        totalWorkouts = 0
         weeklyScans = 0
         latestDiagnosis = nil
         displayName = ""

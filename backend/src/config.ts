@@ -54,6 +54,15 @@ export const config = {
     clientId: process.env.GOOGLE_CLIENT_ID || "",
   },
 
+  // Stripe (Web Checkout)
+  stripe: {
+    secretKey: process.env.STRIPE_SECRET_KEY || "",
+    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET || "",
+    weeklyPriceId: process.env.STRIPE_WEEKLY_PRICE_ID || "",
+    monthlyPriceId: process.env.STRIPE_MONTHLY_PRICE_ID || "",
+    checkoutDomain: process.env.STRIPE_CHECKOUT_DOMAIN || "https://ascendapp.us",
+  },
+
   // APNs
   apns: {
     keyPath: process.env.APNS_KEY_PATH || "./APNsAuthKey.p8",

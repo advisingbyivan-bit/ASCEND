@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCEND — Subscription Active</title>
+  <script>
+    // Redirect to main checkout page with session_id — it handles the success view
+    const params = window.location.search;
+    window.location.replace('/checkout/' + params);
+  </script>
+</head>
+<body style="background:#0A0E1A;"></body>
+</html>
